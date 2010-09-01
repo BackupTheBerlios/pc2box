@@ -40,7 +40,7 @@ typedef	signed   __int64	__s64;
 typedef	unsigned __int64	__u64;
 */
 #if defined(_WIN32) || defined(_WIN64)
-typedef	unsigned int32	__u32;
+typedef	unsigned int	__u32;
 #else
 typedef	unsigned int	__u32;
 #endif

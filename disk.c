@@ -3,7 +3,7 @@
  *
  *  This code implements low-level disk access for PVR utilities
  *
- *  This code was developed by ? and ported to Linux by metterschling
+ *  This code was developed by tibor/LaSat and ported to Linux by metterschling
  *
  * This file is part of pc2box, a free C++ PVR file retrieval utility
  *
@@ -1338,7 +1338,7 @@ VfsDevtoLetter(char *DevName, char *driver)
 	return Status;
 }
 
-int Unmount(char *driver)
+int Unmount(const char *driver)
 {
 
 	char	DosDevName[256];
@@ -1388,7 +1388,6 @@ int Unmount(char *driver)
 		NULL))
 	{
 		printf("Unmount: ioctl: DisMount %s error.\n", DosDevName);
-		CloseHandle(device);
 	}
 
 	CloseHandle(device);
@@ -1413,7 +1412,7 @@ NTSTATUS VfsReadDisk(PVFS_FILESYS  VfsSys,
                 void *Buffer )
 {
     unsigned long long Address;
-    int Status;
+    int Status = -1;
     unsigned long AlignedLength;
     void *NonPagedBuffer = NULL;
 
@@ -1583,7 +1582,7 @@ NTSTATUS VfsCloseDevice(PVFS_FILESYS VfsSys)
     return Status;
 }
 
-NTSTATUS Unmount(const char *driver)
+int Unmount(const char *driver)
 {
     // currently dummy - later we may need to unmount a device here
     printf("Unmount %s\n", driver);

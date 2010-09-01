@@ -221,7 +221,7 @@ private:
         U32 ix,is=0;
         QTreeWidgetItem *item;
         //printf("\n load files as TS ");
-        for(ix=0;ix<VFS_ROOT_ENTRYS;ix++){
+        for(ix=0;ix<VFS_ROOT_ENTRIES;ix++){
             item = treeWidget->topLevelItem(ix);
 #if defined(_WIN32) || defined(_WIN64)
             printf("\n item %x %x",(int)ix,(int)item);
@@ -266,7 +266,7 @@ private:
     void AddNewFileForDownload(void)
     {
         U32 is;
-        for(is=0;is<VFS_ROOT_ENTRYS;is++){
+        for(is=0;is<VFS_ROOT_ENTRIES;is++){
             QTreeWidgetItem *item = treeWidget->topLevelItem(is);
             if(item){
                 Qt::CheckState itemState = qobject_cast<QCheckBox*>(treeWidget->itemWidget(item, 0))->checkState();

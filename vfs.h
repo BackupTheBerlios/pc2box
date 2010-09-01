@@ -36,11 +36,11 @@
 extern "C" {
 #endif
 
-#include <ntddk.h>
-#include <NTDDDISK.H>
-#include <NTDDDISK.H>
-#include <winddk.H>
-#include <ntifs.H>
+#include <ddk/ntddk.h>
+#include <ddk/ntdddisk.h>
+#include <ddk/ntdddisk.h>
+#include <ddk/winddk.h>
+#include <ddk/ntifs.h>
 
 //#define DUPLICATE_SAME_ATTRIBUTES   0x00000004
 //#pragma comment(lib,"ntdll.lib")
@@ -109,7 +109,7 @@ typedef struct _vfs_filesys
 //! vfs stuff
 
 #define VFS_INODEN_NAME_LEN     32
-#define VFS_ROOT_ENTRYS         1000
+#define VFS_ROOT_ENTRIES        1000
 #define VFS_TSPACK_SIZE         0x24B80
 #define VFS_REC_SIZE            0x24C00
 
@@ -163,8 +163,7 @@ typedef struct {
    INT8U                    attrib;                          //! --rw-- --ro--
    INT8U                    flServiceType;
 
-   INT8U                    EntryNameStart; // ^E starts all names
-   INT8U                    EntryName[VFS_INODEN_NAME_LEN-1];  //! name
+   INT8U                    EntryName[VFS_INODEN_NAME_LEN];  //! name
 //! file size
    INT32U                   sizecluster;                     //! size in cluster
    INT32U                   sizeinlastcluster;               //! bytesize in last cluster
@@ -265,6 +264,7 @@ typedef enum{
 }HD_VFS_MARK_TYPE;
 
 #define VFS_MARKINFO_NAME_LEN     40
+/* On-disk structure */
 typedef struct{
 
         INT32U                    Idx;                                //! markIDX
@@ -295,13 +295,24 @@ typedef struct{
 
 
 #define VFS_SIG                0x14233241
-//#define VFS_INFOSTR_SIZE       30
+/* Original source: #define VFS_INFOSTR_SIZE 30
+   So we are in trouble here: either support one structure or the other,
+   but not both at the same time
+*/
 #define VFS_INFOSTR_SIZE       32
-//#define VFS_VERSION            0x00000100
+
+/* Original source: #define VFS_VERSION 0x00000100
+   But: This was never used by pc2box, so who knows with which version
+   of the file system VFS_INFOSTR_SIZE was changed? */
 #define VFS_VERSION            0x00000200
-//#define VFS_INFO_STR           "LaSAT VideoFS V.100"
+
+/* Original source: #define VFS_INFO_STR "LaSAT VideoFS V.100"
+   But: This was never used by pc2box */
 #define VFS_INFO_STR           "LaSAT VideoFS V.201"
-#define VFS_CLUSTER_SIZE       0x100000 // 0x000800 ??
+
+/* On recordings from a SMART MX-84 receiver, VFS_Table::ClusterSize 
+   contains 0x000800 - what does this mean? */
+#define VFS_CLUSTER_SIZE       0x100000
 #define VFS_RESEVED_SECT       0x80
 #define VFS_FILES_MAX_OPEN     2
 
@@ -310,6 +321,7 @@ typedef struct{
 #define IS_BIT_SET(val,bitnum) ((((val) & (1<<(bitnum))) == 0) ? 0 : 1 )
 #define IS_BIT_CLR(val,bitnum) ((((val) & (1<<(bitnum))) == 0) ? 1 : 0 )
 
+/* On-disk structure, similar to FAT boot sector */
 typedef struct{
 
        INT32U                   vfs_sig;                             //! VFS_Sig
@@ -317,7 +329,7 @@ typedef struct{
        INT32U                   VFS_Version;                         //! Version
        INT32U                   SectorSize;                          //! LbaSectorsize in byte
        INT32U                   ClusterSize;                         //! size of each cluster in lba
-       INT32U                   LbaSize;                             //! size of copleate partition
+       INT32U                   LbaSize;                             //! size of complete partition
        INT32U                   RsvLbaSect;                          //! lba's free after VFS_Table
        INT32U                   rootentrycounter;                    //! counter of entrys in root
        INT32U                   rootentryLbaSect;                    //! root entry sector
@@ -381,8 +393,8 @@ FAT_ERROR VFS_SetVFSRecordInfo(HD_VFS_MARK_INFO *pInfo,INT8U flLinkenable);
 INT32U    VFS_PutNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *err);
 FAT_ERROR VFS_CloseFile(HD_VFS_HANDLER *pfile,HD_VFS_FILECLOSE store);
 INT32U    VFS_GetClusterSize();
-FAT_ERROR HD_VFS_GetEventIngobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData);
-FAT_ERROR HD_VFS_PutEventIngobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData);
+FAT_ERROR HD_VFS_GetEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData);
+FAT_ERROR HD_VFS_PutEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData);
 FAT_ERROR VFS_ReinitVFSRecordList(HD_VFS_HANDLER *pfile,INT16U MarkIdx);
 //! main.cpp
 int       main_test_dev();
@@ -397,6 +409,7 @@ void      Maindebug(char* str);
 void      print_to_output(char *str,void *output);
 FAT_ERROR CreateVFSEntry(char* name);
 __int64   FileSize64( const char * szFileName);
+void      stripCtrlE(char *entryName);
 #ifdef __cplusplus
 }
 #endif

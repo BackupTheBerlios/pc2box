@@ -1,11 +1,10 @@
 High priority:
 
-* Linux: Fix buffer overflow when compiled with -O2
+* Linux: Fix program crash when transferring multiple files (on fast systems)
 
 Medium priority:
-* Linux: Program currently increments device file names forever
-  if no device is found in sdb-sdz range. Ideally it should
-  wrap around to achieve constant device polling
-
 * Linux: If more than one device with LaSat FS is connected, only
   one (the first in the sequence of device files) will be recognized
+* All: Fix bFile handling
+* All: Decouple synchronization from file locking
+* All: Strip leading CTRL-E from UI list box (if present)

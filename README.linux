@@ -1,4 +1,4 @@
-Quick start for Ubuntu Linux (tested on Lucid):
+Quick start for Ubuntu Linux (tested on 10.04 Lucid):
 
 1. Install QT4 development environment:
 $ sudo apt-get install qt4-dev-tools
@@ -6,15 +6,18 @@ $ sudo apt-get install qt4-dev-tools
 2. Generate makefile
 $ qmake -makefile pc2boxlx.pro
 
-3. Edit Makefile and replace all -O2 instances with -g (currently a hack
-to prevent buffer overflows, needs to be tracked down/fixed)
-
-4. build
+3. build
 $ make
 
-5. run
-$ ./pc2boxlx
+4. run pc2box
+$ sudo ./pc2boxlx
 
+If you don't want to run the program as root, add the "disk" group to your user account.
+Be aware that this may weaken your system's security - a potential intruder can gain
+raw disk access (read and write)!
+
+Potential issues:
+* multiple file download - on fast systems, the program may crash after first file
 
 Untested so far:
 * rec file download 

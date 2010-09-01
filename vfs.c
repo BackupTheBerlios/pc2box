@@ -99,6 +99,28 @@ static INT32U           BitMapBuf[VFS_MAX_U32BITMAP_SIZE];
                                            Drive.pSectorBuffer))
 #endif
 
+
+#define CTRLE 0x05
+
+void stripCtrlE(char *entryName)
+{
+    char *tmpBuffer = (char *)malloc(strlen(entryName)+1);
+    int i, j = 0;
+    for (i=0; i<strlen(entryName); i++)
+        if (entryName[i] != CTRLE) {
+            tmpBuffer[j] = entryName[i];
+            j++;
+        }
+    tmpBuffer[j] = 0;
+
+    printf("\nEntryName[0] <%x>, tmpBuffer[0] <%x>", entryName[0], tmpBuffer[0]);
+    
+    strcpy(entryName, tmpBuffer);
+
+    free(tmpBuffer);
+}
+
+
 static INT8U VFS_Enter(void)
 {
     INT8U err = 0;
@@ -494,7 +516,6 @@ static FAT_ERROR hd_vfs_allocNcluster(HD_VFS_HANDLER *pfile,INT32U NCluster)
 
 static FAT_ERROR hd_vfs_printDir(INT32U Cluster)
 {
-
     //       FAT_ERROR err = FAT_OK;
     INT16U    offset = 0,ix;
     HD_VFS_INODE_DESC *pInode = 0;
@@ -514,6 +535,7 @@ static FAT_ERROR hd_vfs_printDir(INT32U Cluster)
                         stat = pInode[ix].status;
                         if(stat == INODE_BUSSY)
                             {
+                                stripCtrlE((char *)pInode[ix].EntryName);
                                 printf("\n%04d ",filenumber-1);
                                 printf(" bmap lba 0x%x",pInode[ix].FileBitmapSector);
                                 printf(" %s",pInode[ix].EntryName);
@@ -771,7 +793,7 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
                     if(!((HD_VFS_MARK_INFO*)&Drive.pSectorBuffer[((ix<<6)&0x1ff)])->type)
                         {
                             //! store the entry on a free entry
-                            printf("\nSet Mart at the END");
+                            printf("\nSet Mark at the END");
                             //! create mark
                             if(!pInfo->type)pInfo->type = MARK_POS;
                             if(!strlen((const char*)pInfo->markname)){
@@ -779,7 +801,7 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
                             }
                             else{
                                 printf("\n use special markname ->");
-                                printf((const char*)pInfo->markname);
+                                printf("%s", (const char*)pInfo->markname);
                             }
                             pInfo->Idx = ix;
                             *(HD_VFS_MARK_INFO*)&Drive.pSectorBuffer[((ix<<6)&0x1ff)] = *pInfo;
@@ -798,7 +820,7 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
                                 }
                                 else{
                                     printf("\n use special markname ->");
-                                    printf((const char*)pInfo->markname);
+                                    printf("%s", (const char*)pInfo->markname);
                                 }
                                 pInfo->Idx = ix;
                                 *(HD_VFS_MARK_INFO*)&Drive.pSectorBuffer[((ix<<6)&0x1ff)] = *pInfo;
@@ -848,14 +870,17 @@ FAT_ERROR VFS_Mount(INT32U SecLba)
     INT32U    free,tmp;
     FAT_ERROR err;
     INT8U     i=0;
+#if !defined(_WIN32) && !defined(_WIN64)
+    int readResult;
+#endif
 
     VFS_Enter();
     //! test MBR
-    err   = READ_SECTOR(0);
 #if defined(_WIN32) || defined(_WIN64)
-    if (err != 0) {
+    if (!READ_SECTOR(0)) {
 #else
-    if (err == -1) {
+    readResult   = READ_SECTOR(0);
+    if (readResult == -1) {
 #endif
         printf("Partition table can not be read!!!!\n");
         return FAT_ERROR_GEN;
@@ -1135,7 +1160,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
 
     if(!path)return FAT_BADPARAM;
     VFS_Enter();
-    printf("\n Open File");
+    printf("\n Open File %x", path[0]);
     //! find a free file_handler
     for(i=0;i<VFS_FILES_MAX_OPEN;i++) {
         if(!VFSHandler[i].stat) {
@@ -1144,6 +1169,8 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
             while(is--) {
                 pInode = (HD_VFS_INODE_DESC*)(INT32U)hd_vfs_ClusterRead(Cluster,offset++);
                 if(!pInode)continue;
+                if (pInode[ix].EntryName[0])
+                    stripCtrlE((char *)pInode[ix].EntryName);
                 for(ix = 0; ix < (Drive.V_FAT.SectorSize / sizeof(HD_VFS_INODE_DESC));ix++) {
                     if(pInode[ix].status == INODE_EOI) {
                         printf("\n Path not found (EOI)");
@@ -1202,7 +1229,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                 }
             } else
 #if defined(_WIN32) || defined(_WIN64)
-                if((flag & O_OPEN_MASK) == O_CREAT)
+                if((flag & O_OPEN_MASK) == O_CREAT) {
 #else
                 if(flag == (O_RDWR|O_CREAT)) {
 #endif
@@ -1248,7 +1275,8 @@ FAT_ERROR VFS_GetFileInfobyIndex(INT16U idx,HD_VFS_HANDLER *pHandler)
     FAT_ERROR          err = FAT_OK;
     HD_VFS_INODE_DESC *pInode;
     INT32U             Cluster,offset,Idx;
-
+    INT16U ix;
+    
     if(Drive.V_FAT.rootentrycounter < idx)
         return FAT_OUT_OF_SPACE;
     VFS_Enter();
@@ -1260,6 +1288,15 @@ FAT_ERROR VFS_GetFileInfobyIndex(INT16U idx,HD_VFS_HANDLER *pHandler)
     offset += (idx*sizeof(HD_VFS_INODE_DESC)) / Drive.V_FAT.SectorSize;
     //! read sector
     pInode  = ((HD_VFS_INODE_DESC*)hd_vfs_ClusterRead(Cluster,offset));
+#if 0
+    // This causes the CTRL-E character removal from the UI file list
+    // Unfortunately the file will not be found during download
+    // when this code is activated
+    if(pInode)
+        for(ix = 0;ix < (Drive.V_FAT.SectorSize / sizeof(HD_VFS_INODE_DESC));ix++)
+            if (pInode[ix].EntryName[0])
+                stripCtrlE((char *)pInode[ix].EntryName);
+#endif
     Idx     = (idx*sizeof(HD_VFS_INODE_DESC)) % Drive.V_FAT.SectorSize;
     Idx    /=  sizeof(HD_VFS_INODE_DESC);
     //! offset in this sector
@@ -1280,7 +1317,7 @@ FAT_ERROR VFS_GetFileInfobyIndex(INT16U idx,HD_VFS_HANDLER *pHandler)
     return err;
 }
 
-FAT_ERROR HD_VFS_GetEventIngobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData)
+FAT_ERROR HD_VFS_GetEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData)
 {
     FAT_ERROR         err;
     INT32U            Sectortoread;
@@ -1302,7 +1339,7 @@ FAT_ERROR HD_VFS_GetEventIngobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U 
     return err;
 }
 
-FAT_ERROR HD_VFS_PutEventIngobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData)
+FAT_ERROR HD_VFS_PutEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData)
 {
     INT32U            Sectortoread;
     printf("\nPut EventInfo ->0x%x",FileIdx);
