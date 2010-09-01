@@ -5,3 +5,5 @@ pc2box
 Makefile*
 *~
 recordings
+debug
+release
