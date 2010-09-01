@@ -14,7 +14,11 @@ typedef	signed   __int32	__s32;
 typedef	signed   __int64	__s64;
 typedef	unsigned __int64	__u64;
 */
-typedef	unsigned __int32	__u32;
+#if defined(_WIN32) || defined(_WIN64)
+typedef	unsigned int32	__u32;
+#else
+typedef	unsigned int	__u32;
+#endif
 //! SmartMpeg_type
 typedef unsigned char  U8;
 typedef unsigned short U16;
@@ -33,4 +37,13 @@ typedef signed   int   INT32S;                   /* Signed   32 bit quantity    
 typedef float          FP32;                     /* Single precision floating point                    */
 typedef double         FP64;                     /* Double precision floating point                    */
 
+#if !defined(_WIN32) && !defined(_WIN64)
+typedef unsigned long long ULONGLONG;
+typedef unsigned long ULONG;
+typedef void * PVOID;
+typedef char * PUCHAR;
+typedef int NTSTATUS;
+typedef unsigned long long __int64;
+#define IN
+#endif
 #endif

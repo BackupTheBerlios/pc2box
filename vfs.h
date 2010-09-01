@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,11 +24,14 @@ extern "C" {
 }
 #endif
 
-#include "time.h"
-#include "io.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
+#include <io.h>
+
+#endif // windows only
+
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "types.h"
 
 #ifndef true
@@ -37,8 +42,12 @@ extern "C" {
 #define false   FALSE
 #endif
 
-
+#if defined(_WIN32) || defined(_WIN64)
 #define SECTOR_SIZE (VfsSys->DiskGeometry.BytesPerSector)
+#else
+// hard-code sector size on linux -> unlikely to change
+#define SECTOR_SIZE 0x0200
+#endif
 
 typedef struct _vfs_filesys
 {
@@ -49,11 +58,16 @@ typedef struct _vfs_filesys
     __u32               reserved[8];
 
     void *                  priv_data;
+
+#if defined(_WIN32) || defined(_WIN64)
     BOOLEAN                 bFile;
     HANDLE                  MediaHandle;
     DISK_GEOMETRY           DiskGeometry;
     PARTITION_INFORMATION   PartInfo;
-
+#else
+    int                 bFile;
+    int                 MediaHandle;
+#endif
 } VFS_FILESYS, *PVFS_FILESYS;
 
 
@@ -75,7 +89,7 @@ typedef struct _vfs_filesys
 #define VFS_REC_SIZE            0x24C00
 
 
-
+#if defined(_WIN32) || defined(_WIN64)
 #define O_RDONLY        0x0000  //! open file read_only
 #define O_WRONLY        0x0001  //! open file write_only
 #define O_RDWR          0x0002  //! open file read_write
@@ -84,6 +98,7 @@ typedef struct _vfs_filesys
 #define O_OPEN          0x0100  //! open an existing file
 #define O_CREAT         0x0200  //! create an file
 #define O_OPEN_MASK     0x0300  //! mask for open
+#endif
 
 typedef enum{
 
@@ -123,7 +138,8 @@ typedef struct {
    INT8U                    attrib;                          //! --rw-- --ro--
    INT8U                    flServiceType;
 
-   INT8U                    EntryName[VFS_INODEN_NAME_LEN];  //! name
+   INT8U                    EntryNameStart; // ^E starts all names
+   INT8U                    EntryName[VFS_INODEN_NAME_LEN-1];  //! name
 //! file size
    INT32U                   sizecluster;                     //! size in cluster
    INT32U                   sizeinlastcluster;               //! bytesize in last cluster
@@ -136,6 +152,8 @@ typedef struct {
    INT32U                   LastRecTime;
 
 }HD_VFS_INODE_DESC;
+
+#define VFS_MAX_U32BITMAP_SIZE  0x2000
 
 typedef struct{
 
@@ -199,8 +217,11 @@ typedef enum{
 }HD_VFS_FILECLOSE;
 
 typedef struct{
-
-        BOOL                      Init;
+#if defined(_WIN32) || defined(_WIN64)
+    BOOL                      Init;
+#else
+    int Init;
+#endif
         PVFS_FILESYS              VfsSys;
 
 }HD_VFS_INIT;
@@ -247,6 +268,64 @@ typedef struct{
 
 }HD_VFS_PC_HEADER;
 
+
+#define VFS_SIG                0x14233241
+//#define VFS_INFOSTR_SIZE       30
+#define VFS_INFOSTR_SIZE       32
+//#define VFS_VERSION            0x00000100
+#define VFS_VERSION            0x00000200
+//#define VFS_INFO_STR           "LaSAT VideoFS V.100"
+#define VFS_INFO_STR           "LaSAT VideoFS V.201"
+#define VFS_CLUSTER_SIZE       0x100000 // 0x000800 ??
+#define VFS_RESEVED_SECT       0x80
+#define VFS_FILES_MAX_OPEN     2
+
+#define SET_BIT(val,bitnum)    ((val) |=  (1<<(bitnum)))
+#define CLR_BIT(val,bitnum)    ((val) &= ~(1<<(bitnum)))
+#define IS_BIT_SET(val,bitnum) ((((val) & (1<<(bitnum))) == 0) ? 0 : 1 )
+#define IS_BIT_CLR(val,bitnum) ((((val) & (1<<(bitnum))) == 0) ? 1 : 0 )
+
+typedef struct{
+
+       INT32U                   vfs_sig;                             //! VFS_Sig
+       INT8U                    FSInfo[VFS_INFOSTR_SIZE];            //! InfoString
+       INT32U                   VFS_Version;                         //! Version
+       INT32U                   SectorSize;                          //! LbaSectorsize in byte
+       INT32U                   ClusterSize;                         //! size of each cluster in lba
+       INT32U                   LbaSize;                             //! size of copleate partition
+       INT32U                   RsvLbaSect;                          //! lba's free after VFS_Table
+       INT32U                   rootentrycounter;                    //! counter of entrys in root
+       INT32U                   rootentryLbaSect;                    //! root entry sector
+       //! freelist stuff
+       INT32U                   freebitmapsec;                       //! lba of bitmap
+       INT32U                   freelistsizeinbyte;                  //! size of this bitmap
+       INT32U                   freelistsizeinlba;                   //! size of this bitmap in lba
+       //! bitmap Info
+       INT32U                   firstfreebyteoffset;                 //! byteoffset of first free inode
+       INT8U                    Bitmaskoffirstfree;                  //! bitoffset
+       INT32U                   freecounter;                         //! counter of free inodes
+       INT32U                   numberoffilesinFS;                   //! conter of all files in partition
+       INT32U                   rootentryLBA;                        //! lba of root_dir
+       //! info system
+       INT32U                   infoentryLBA;
+       INT32U                   infoentrycounter;
+       INT32U                   infosize;
+       INT16U                   marksbyentry;
+
+}VFS_Table, MBR;
+
+typedef struct{
+
+       VFS_Table                V_FAT;
+       VFS_BITMAP_BUFF          FreeBitmap;
+       INT8U                   *pSectorBuffer;
+       INT32U                   ActSectorinBuffer;
+       INT32U                   ActLbaSector;
+       PVFS_FILESYS             VfsSys;
+
+}VFS_VARS;
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -261,7 +340,7 @@ NTSTATUS VfsDisMountVolume(PVFS_FILESYS VfsSys );
 NTSTATUS VfsOpenDevice(PVFS_FILESYS VfsSys,PUCHAR DeviceName );
 NTSTATUS VfsCloseDevice( PVFS_FILESYS VfsSys);
 NTSTATUS VfsDevtoLetter(char *DevName, char *driver);
-int      Unmount(char *driver);
+int      Unmount(const char *driver);
 void     VfsRemoveLetter(char *driver);
 //! debug.c
 void DEBUG_DumpData(U8 *ptData,U32 Size );

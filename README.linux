@@ -1,0 +1,16 @@
+To get started:
+
+1. Install QT4 development envrionment:
+$ sudo apt-get install qt4-dev-tools
+
+2. Generate makefile
+$ qmake -makefile pc2boxlx.pro
+
+3. Edit Makefile and replace all -O2 instances with -g (currently a hack
+to prevent buffer overflows, needs to be tracked down/fixed)
+
+4. build
+$ make
+
+5. run
+$ ./pc2boxlx

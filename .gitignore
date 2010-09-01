@@ -1,0 +1,6 @@
+*.mpg
+*.o
+moc_myform.*
+pc2boxlx
+Makefile
+*~
