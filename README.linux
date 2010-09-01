@@ -1,6 +1,6 @@
-To get started:
+Quick start for Ubuntu Linux (tested on Lucid):
 
-1. Install QT4 development envrionment:
+1. Install QT4 development environment:
 $ sudo apt-get install qt4-dev-tools
 
 2. Generate makefile
@@ -14,3 +14,8 @@ $ make
 
 5. run
 $ ./pc2boxlx
+
+
+Untested so far:
+* rec file download 
+* pc2box (file upload to LaSat FS)

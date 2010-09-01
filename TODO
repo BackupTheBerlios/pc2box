@@ -1,0 +1,11 @@
+High priority:
+
+* Linux: Fix buffer overflow when compiled with -O2
+
+Medium priority:
+* Linux: Program currently increments device file names forever
+  if no device is found in sdb-sdz range. Ideally it should
+  wrap around to achieve constant device polling
+
+* Linux: If more than one device with LaSat FS is connected, only
+  one (the first in the sequence of device files) will be recognized
