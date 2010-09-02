@@ -1,10 +1,14 @@
 High priority:
 
 * Linux: Fix program crash when transferring multiple files (on fast systems)
-
+         Background: While it is working on an old, slow Notebook as well as on
+	 a very recent & fast Notebook, multi-file transfer crashes with
+	 segmentation fault on a very fast Desktop PC that is equipped with
+	 a very fast SSD drive. Probably a race condition.
+ 
 Medium priority:
 * Linux: If more than one device with LaSat FS is connected, only
   one (the first in the sequence of device files) will be recognized
+* Windows: Improper return code handling for VfsGetMediaInfo
 * All: Fix bFile handling
 * All: Decouple synchronization from file locking
-* All: Strip leading CTRL-E from UI list box (if present)

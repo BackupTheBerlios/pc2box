@@ -96,7 +96,6 @@ public:
     FileDownload     *pPc2Box;
     DownloadBarInfo  *pDownloadBar;
 
-
     Filesfordownload *ActFile;
     Filesfordownload *ActPc2BoxFile;
     HD_VFS_HANDLER   *VFSHandler;
@@ -108,13 +107,8 @@ public:
     void             prepareFileName(char *Str);
     U32              CreateVFSEntry(char* name);
 
-#if defined(_WIN32) || defined(_WIN64)
-    int              init_vfs(int dev,int *ping);
-    int              Poll_vfs(int dev,int *ping);
-#else
     int              init_vfs(int dev, bool *ping);
     int              Poll_vfs(int dev, bool *ping);
-#endif
 
  signals:
     void      beep();
@@ -128,44 +122,17 @@ public:
     void      transferCancel();
 
  private:
-
     std::string     name;
     VFS_FILESYS     FileSys;
     HD_VFS_INIT     VfsInit;
-    void printTextBrowser(const char *str){
-        if(str){
-            sprintf(this->Str,"%s",str);
-        }else this->Str[0] = 0x00;
-        emit beep();
-        msleep(10); // update unsynced, wait a while to be sure
-
-    }
-    void AddNewVFSHandler(HD_VFS_HANDLER *pVfsHandler){
-        if(pActVfsHandler){
-            *pActVfsHandler = *pVfsHandler;
-            emit FileListbeep();
-        }else{printf("\n VFSHandler not init");}
-    }
-    void updateDownloadbar(DownloadBarInfo *pInfo){
-        printf("\n bar -> %d ",(int)pInfo->bar);
-        *pDownloadBar = *pInfo;
-        emit UpdateBarbeep();
-        while(pDownloadBar->bar != 0xffffffff){ // sync it
-            lock->unlock();
-            msleep(1);
-            lock->lock();
-        }
-    }
+    void printTextBrowser(const char *str);
+    void AddNewVFSHandler(HD_VFS_HANDLER *pVfsHandler);
+    void updateDownloadbar(DownloadBarInfo *pInfo);
     void OpenFilesForUpload(void);
     void UpdateFileListWidget(void);
-
 };
 
-#if defined(_WIN32) || defined(_WIN64)
-typedef int (Disk_Thread::*fpPolling)(int, int *);
-#else
 typedef int (Disk_Thread::*fpPolling)(int, bool *);
-#endif
 
 class MyForm : public QWidget
 {
@@ -200,113 +167,21 @@ signals:
     void StartDownloadbeep();
     void Startpc2boxbeep();
 
-
 public slots:
     virtual void ShowApplicationInfo();
     virtual void LoadRecFiles();
     virtual void LoadTSFiles();
     virtual void pc2box();
-    void         gotBeep() {
-        if(!TextBrowserStr[0])
-            textBrowser->clear();
-        else textBrowser->insertPlainText(TextBrowserStr);
-    }
+    void         gotBeep();
     void         updateFileListWidget();
     void         clearFileListWidget();
     void         DisplayLoadBar();
 
 private:
-    U32 countSelectedFiles(void)
-    {
-        U32 ix,is=0;
-        QTreeWidgetItem *item;
-        //printf("\n load files as TS ");
-        for(ix=0;ix<VFS_ROOT_ENTRIES;ix++){
-            item = treeWidget->topLevelItem(ix);
-#if defined(_WIN32) || defined(_WIN64)
-            printf("\n item %x %x",(int)ix,(int)item);
-#else
-            printf("\n item %x",(int)ix);
-#endif
-            if(item){
-                Qt::CheckState itemState = qobject_cast<QCheckBox*>(treeWidget->itemWidget(item, 0))->checkState();
-                if(itemState == Qt::Checked){
-                    is++;
-                }
-            }else{
-                break;
-            }
-        }
-        if(!is){
-            QMessageBox::warning( this, tr(" ERROR "),tr(" nicht's selektiert? "));
-            return 0;
-        }else return is;
-    }
-    void resize(QWidget *Form)
-    {
-        QSize size(543, 363);
-        size = size.expandedTo(Form->minimumSizeHint());
-        Form->resize(size);
-    }
-    void retranslateUi(QWidget *Form)
-    {
-        Form->setWindowTitle(QApplication::translate("Form", "pc2Box", 0, QApplication::UnicodeUTF8));
-        pushButton_2->setText(QApplication::translate("Form", "pc2box", 0, QApplication::UnicodeUTF8));
-        pushButton_4->setText(QApplication::translate("Form", "TS laden", 0, QApplication::UnicodeUTF8));
-        pushButton_3->setToolTip(QString());
-        pushButton_3->setText(QApplication::translate("Form", "Rec laden", 0, QApplication::UnicodeUTF8));
-        treeWidget->headerItem()->setText(0, QApplication::translate("Form", "Nbr", 0, QApplication::UnicodeUTF8));
-        treeWidget->headerItem()->setText(1, QApplication::translate("Form", "Name", 0, QApplication::UnicodeUTF8));
-        treeWidget->headerItem()->setText(2, QApplication::translate("Form", "Gr\303\266sse", 0, QApplication::UnicodeUTF8));
-        treeWidget->headerItem()->setText(3, QApplication::translate("Form", "Zeit", 0, QApplication::UnicodeUTF8));
-        pushButton->setText(QApplication::translate("Form", "Ende", 0, QApplication::UnicodeUTF8));
-        pushButton_5->setText(QApplication::translate("Form", "Info", 0, QApplication::UnicodeUTF8));
-        Q_UNUSED(Form);
-    } // retranslateUi
-    void AddNewFileForDownload(void)
-    {
-        U32 is;
-        for(is=0;is<VFS_ROOT_ENTRIES;is++){
-            QTreeWidgetItem *item = treeWidget->topLevelItem(is);
-            if(item){
-                Qt::CheckState itemState = qobject_cast<QCheckBox*>(treeWidget->itemWidget(item, 0))->checkState();
-                if(itemState == Qt::Checked){
-
-                    Filesfordownload *File = (Filesfordownload*) malloc(sizeof(Filesfordownload));
-                    Filesfordownload *ptr  =  FilestoDownload.FileList;
-
-                    memset((char*)File,0x00,sizeof(Filesfordownload));
-                    if(ptr){
-                        while(ptr->next){
-                            printf("\n next entry !!!!!");
-                            ptr = ptr->next;
-                        }
-                        ptr->next = File;
-                    }else{
-                        printf("\n first entry !!!!!");
-                        FilestoDownload.FileList = File;
-                    }
-
-                    printf("\n name ->");
-                    QString  FileName = item->text(1);
-                    U32      ix       = FileName.size();
-                    QChar   *data     = FileName.data();
-                    char  *Str        = (char*)&File->EntryName[0];
-                    memset(Str,0x00,VFS_INODEN_NAME_LEN);
-                    if(ix < VFS_INODEN_NAME_LEN){
-                        while(ix--) {
-                            *Str++ = data->unicode();
-                            data++;
-                        }
-                    }else{printf(" VFS_INODEN_NAME_LEN ");}
-                    printf("%s",(char*)File->EntryName);
-
-                }
-            }
-        }
-        emit StartDownloadbeep();
-
-    }
+    U32 countSelectedFiles(void);
+    void resize(QWidget *Form);
+    void retranslateUi(QWidget *Form);
+    void AddNewFileForDownload(void);
 };
 
 

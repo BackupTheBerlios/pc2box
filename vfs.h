@@ -53,12 +53,6 @@ extern "C" {
 
 #endif // windows only
 
-#include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "types.h"
-
 #ifndef true
 #define true    TRUE
 #endif
@@ -67,11 +61,17 @@ extern "C" {
 #define false   FALSE
 #endif
 
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "types.h"
+
 #if defined(_WIN32) || defined(_WIN64)
 #define SECTOR_SIZE (VfsSys->DiskGeometry.BytesPerSector)
 #else
 // hard-code sector size on linux -> unlikely to change
-#define SECTOR_SIZE 0x0200
+#define SECTOR_SIZE 0x0200UL
 #endif
 
 typedef struct _vfs_filesys
@@ -84,14 +84,11 @@ typedef struct _vfs_filesys
 
     void *                  priv_data;
 
-#if defined(_WIN32) || defined(_WIN64)
     BOOLEAN                 bFile;
     HANDLE                  MediaHandle;
+#if defined(_WIN32) || defined(_WIN64)
     DISK_GEOMETRY           DiskGeometry;
     PARTITION_INFORMATION   PartInfo;
-#else
-    int                 bFile;
-    int                 MediaHandle;
 #endif
 } VFS_FILESYS, *PVFS_FILESYS;
 
@@ -156,6 +153,7 @@ typedef enum {
 
 }HD_VFS_INODE_STAT;
 
+/* On-disk structure describing a file */
 typedef struct {
 
    INT8U                    status;                          //! status
@@ -241,11 +239,7 @@ typedef enum{
 }HD_VFS_FILECLOSE;
 
 typedef struct{
-#if defined(_WIN32) || defined(_WIN64)
-    BOOL                      Init;
-#else
-    int Init;
-#endif
+        BOOL                      Init;
         PVFS_FILESYS              VfsSys;
 
 }HD_VFS_INIT;
@@ -376,7 +370,7 @@ NTSTATUS VfsUnLockVolume(PVFS_FILESYS VfsSys );
 NTSTATUS VfsDisMountVolume(PVFS_FILESYS VfsSys );
 NTSTATUS VfsOpenDevice(PVFS_FILESYS VfsSys,PUCHAR DeviceName );
 NTSTATUS VfsCloseDevice( PVFS_FILESYS VfsSys);
-NTSTATUS VfsDevtoLetter(char *DevName, char *driver);
+NTSTATUS VfsDevtoLetter(char *DevName, const char *driver);
 int      Unmount(const char *driver);
 void     VfsRemoveLetter(char *driver);
 //! debug.c
@@ -393,8 +387,8 @@ FAT_ERROR VFS_SetVFSRecordInfo(HD_VFS_MARK_INFO *pInfo,INT8U flLinkenable);
 INT32U    VFS_PutNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *err);
 FAT_ERROR VFS_CloseFile(HD_VFS_HANDLER *pfile,HD_VFS_FILECLOSE store);
 INT32U    VFS_GetClusterSize();
-FAT_ERROR HD_VFS_GetEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData);
-FAT_ERROR HD_VFS_PutEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData);
+FAT_ERROR HD_VFS_GetEventInfobyFileIDX(INT16U FileIdx,INT8U *pData);
+FAT_ERROR HD_VFS_PutEventInfobyFileIDX(INT16U FileIdx,INT8U *pData);
 FAT_ERROR VFS_ReinitVFSRecordList(HD_VFS_HANDLER *pfile,INT16U MarkIdx);
 //! main.cpp
 int       main_test_dev();

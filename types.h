@@ -39,11 +39,8 @@ typedef	signed   __int32	__s32;
 typedef	signed   __int64	__s64;
 typedef	unsigned __int64	__u64;
 */
-#if defined(_WIN32) || defined(_WIN64)
 typedef	unsigned int	__u32;
-#else
-typedef	unsigned int	__u32;
-#endif
+
 //! SmartMpeg_type
 typedef unsigned char  U8;
 typedef unsigned short U16;
@@ -68,7 +65,13 @@ typedef unsigned long ULONG;
 typedef void * PVOID;
 typedef char * PUCHAR;
 typedef int NTSTATUS;
+typedef int BOOLEAN;
+typedef int BOOL;
+typedef int HANDLE;
 typedef unsigned long long __int64;
+#define STATUS_SUCCESS 0
 #define IN
+#define NT_SUCCESS(x) (x!=-1)
 #endif
+
 #endif

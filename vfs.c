@@ -45,59 +45,37 @@ static INT32U           BitMapBuf[VFS_MAX_U32BITMAP_SIZE];
 /*---------------------------------------------------------------------------*/
 /* local defs                                                                */
 /*---------------------------------------------------------------------------*/
-#if !defined(_WIN32) && !defined(_WIN64)
-#define READ_SECTOR(x) VfsReadDisk(Drive.VfsSys,                        \
-                                   (unsigned long long)((unsigned long long)(Drive.ActSectorinBuffer=x)<<9)/**(ULONGLONG)Drive.VfsSys->DiskGeometry.BytesPerSector)*/, \
-                                   512UL,                               \
-                                   Drive.pSectorBuffer)
 
+#if defined(_WIN32) || defined(_WIN64)
+#undef SECTOR_SIZE
+#define SECTOR_SIZE Drive.VfsSys->DiskGeometry.BytesPerSector
+#endif
 
-#define WRITE_SECTOR(x) VfsWriteDisk(Drive.VfsSys,                      \
-                                     (unsigned long long)((unsigned long long)(Drive.ActSectorinBuffer=x)<<9)/**(ULONGLONG)Drive.VfsSys->DiskGeometry.BytesPerSector)*/, \
-                                     512UL,                             \
-                                     Drive.pSectorBuffer)
-
-#define READ_SECTORS(x,d,n) VfsReadDisk(Drive.VfsSys,                   \
-                                        (unsigned long long)((unsigned long long)(Drive.ActSectorinBuffer=x)<<9)/**(ULONGLONG)Drive.VfsSys->DiskGeometry.BytesPerSector)*/, \
-                                        (unsigned long)(n*512UL),       \
-                                        d)
-
-#define WRITE_SECTORS(x,d,n)  VfsWriteDisk(Drive.VfsSys,                \
-                                           (unsigned long long)((unsigned long long)(Drive.ActSectorinBuffer=x)<<9)/**(ULONGLONG)Drive.VfsSys->DiskGeometry.BytesPerSector)*/, \
-                                           (unsigned long)(n*512UL),    \
-                                           d)
-
-#define FLUSH_SECTOR VfsWriteDisk(Drive.VfsSys,                         \
-                                  (unsigned long long)((unsigned long long)(Drive.ActSectorinBuffer)<<9)/**(ULONGLONG)Drive.VfsSys->DiskGeometry.BytesPerSector)*/, \
-                                  512UL,                                \
-                                  Drive.pSectorBuffer)
-#else
 #define READ_SECTOR(x)         NT_SUCCESS(VfsReadDisk(Drive.VfsSys, \
                                           (ULONGLONG)((ULONGLONG)(Drive.ActSectorinBuffer=x)<<9)/**(ULONGLONG)Drive.VfsSys->DiskGeometry.BytesPerSector)*/, \
-                                          (ULONG) Drive.VfsSys->DiskGeometry.BytesPerSector, \
+                                          (ULONG) SECTOR_SIZE, \
                                            Drive.pSectorBuffer))
 
 
 #define WRITE_SECTOR(x)        NT_SUCCESS(VfsWriteDisk(Drive.VfsSys, \
                                           (ULONGLONG)((ULONGLONG)(Drive.ActSectorinBuffer=x)<<9), \
-                                          (ULONG) Drive.VfsSys->DiskGeometry.BytesPerSector, \
+                                          (ULONG) SECTOR_SIZE, \
                                            Drive.pSectorBuffer))
 
 #define READ_SECTORS(x,d,n)    NT_SUCCESS(VfsReadDisk(Drive.VfsSys, \
                                           (ULONGLONG)((ULONGLONG)x<<9) /**(ULONGLONG)Drive.VfsSys->DiskGeometry.BytesPerSector)*/, \
-                                          (ULONG)(n*Drive.VfsSys->DiskGeometry.BytesPerSector), \
+                                          (ULONG)(n*SECTOR_SIZE), \
                                           d))
 
 #define WRITE_SECTORS(x,d,n)   NT_SUCCESS(VfsWriteDisk(Drive.VfsSys, \
                                           (ULONGLONG)((ULONGLONG)x<<9), \
-                                          (ULONG)(n*Drive.VfsSys->DiskGeometry.BytesPerSector), \
+                                          (ULONG)(n*SECTOR_SIZE), \
                                           d))
 
 #define FLUSH_SECTOR           NT_SUCCESS(VfsWriteDisk(Drive.VfsSys, \
                                           (ULONGLONG)((ULONGLONG)(Drive.ActSectorinBuffer)<<9), \
-                                          (ULONG) Drive.VfsSys->DiskGeometry.BytesPerSector, \
+                                          (ULONG) SECTOR_SIZE, \
                                            Drive.pSectorBuffer))
-#endif
 
 
 #define CTRLE 0x05
@@ -105,7 +83,8 @@ static INT32U           BitMapBuf[VFS_MAX_U32BITMAP_SIZE];
 void stripCtrlE(char *entryName)
 {
     char *tmpBuffer = (char *)malloc(strlen(entryName)+1);
-    int i, j = 0;
+    size_t i;
+    int j = 0;
     for (i=0; i<strlen(entryName); i++)
         if (entryName[i] != CTRLE) {
             tmpBuffer[j] = entryName[i];
@@ -113,7 +92,7 @@ void stripCtrlE(char *entryName)
         }
     tmpBuffer[j] = 0;
 
-    printf("\nEntryName[0] <%x>, tmpBuffer[0] <%x>", entryName[0], tmpBuffer[0]);
+    //printf("\nEntryName[0] <%x>, tmpBuffer[0] <%x>", entryName[0], tmpBuffer[0]);
     
     strcpy(entryName, tmpBuffer);
 
@@ -124,28 +103,20 @@ void stripCtrlE(char *entryName)
 static INT8U VFS_Enter(void)
 {
     INT8U err = 0;
-#if defined(_WIN32) || defined(_WIN64)
      if(!NT_SUCCESS(VfsLockVolume(Drive.VfsSys))){
          err  = 1;
          printf("\nVolLockError!!");
         }
-#else
-    // no volume locking on Linux (yet)
-#endif
     return err;
 }
 
 static INT8U VFS_Exit(void)
 {
     INT8U err = 0;
-#if defined(_WIN32) || defined(_WIN64)
      if(!NT_SUCCESS(VfsUnLockVolume(Drive.VfsSys))){
             err  = 1;
             printf("\nVolunlockError!!");
           }
-#else
-    // no volume unlocking yet
-#endif
     return err;
 }
 
@@ -307,10 +278,12 @@ static FAT_ERROR hd_vfs_resetFileMarkList(INT16U idx)
     // LBA by entry
     off = off>>9;
     // read first setor
-    READ_SECTOR(Drive.V_FAT.infoentryLBA+(off*idx));
+    if (!READ_SECTOR(Drive.V_FAT.infoentryLBA+(off*idx)))
+        return FAT_RW_ERROR;
     memset(Drive.pSectorBuffer,0x00,Drive.V_FAT.SectorSize);
     for(ix = 0;ix < off;ix++){
-        FLUSH_SECTOR;
+        if (!FLUSH_SECTOR)
+            return FAT_RW_ERROR;
         Drive.ActSectorinBuffer++;
     }
     return FAT_OK;
@@ -393,7 +366,8 @@ static INT8U *hd_vfs_ClusterRead(INT32U Cluster, INT32U offset)
     offset          += Cluster * Drive.V_FAT.ClusterSize;
     SectortoRead     = Drive.V_FAT.rootentryLbaSect + offset;
     if(SectortoRead != Drive.ActSectorinBuffer){
-        READ_SECTOR(SectortoRead);
+        if (!READ_SECTOR(SectortoRead))
+            return NULL;
     }
     return Drive.pSectorBuffer;
 }
@@ -402,7 +376,8 @@ static FAT_ERROR hd_vfs_flush_FreeBitmap(void)
 {
     INT8U NSectors = (Drive.V_FAT.freelistsizeinbyte/Drive.V_FAT.SectorSize)+1;
     printf("\nFlush FreeBitmap");
-    WRITE_SECTORS(Drive.V_FAT.freebitmapsec,Drive.FreeBitmap.pBitmap,NSectors);
+    if (!WRITE_SECTORS(Drive.V_FAT.freebitmapsec,Drive.FreeBitmap.pBitmap,NSectors))
+        return FAT_RW_ERROR;
     return FAT_OK;
 }
 
@@ -449,15 +424,18 @@ static FAT_ERROR hd_vfs_flushFile(HD_VFS_HANDLER *pfile)
     HD_VFS_INODE_DESC *pInode = 0;
     printf("\nFlush File_Head");
     //! store file_head
-    READ_SECTOR(pfile->fileinfosector);
+    if (!READ_SECTOR(pfile->fileinfosector))
+        return FAT_RW_ERROR;
     printf("\n Head_LBA 0x%x",pfile->fileinfosector);
     pInode  = (HD_VFS_INODE_DESC *)(Drive.pSectorBuffer);
     pInode  = &pInode[pfile->fileinfosectorindex];
     *pInode = pfile->Inode;
-    FLUSH_SECTOR;
+    if (!FLUSH_SECTOR)
+        return FAT_RW_ERROR;
     //! store bmap
     //DEB_PR_HEX("\n Bmp_LBA 0x",pfile->Inode.FileBitmapSector,8)
-    WRITE_SECTORS(pfile->Inode.FileBitmapSector,pfile->bmpfile.pBitmap,Drive.V_FAT.freelistsizeinlba);
+    if (!WRITE_SECTORS(pfile->Inode.FileBitmapSector,pfile->bmpfile.pBitmap,Drive.V_FAT.freelistsizeinlba))
+        return FAT_RW_ERROR;
     return err;
 }
 
@@ -468,20 +446,23 @@ static FAT_ERROR hd_vfs_deleteFile(HD_VFS_HANDLER *pfile)
 
     printf("\nDelete File_Head");
     //! store file_head
-    READ_SECTOR(pfile->fileinfosector);
+    if (!READ_SECTOR(pfile->fileinfosector))
+        return FAT_RW_ERROR;
     //DEB_PR_HEX("\n Head_LBA 0x",pfile->fileinfosector,8)
     pInode  = (HD_VFS_INODE_DESC *)(Drive.pSectorBuffer);
     pInode  = &pInode[pfile->fileinfosectorindex];
     *pInode = pfile->Inode;
     memset(pInode,0x00,sizeof(HD_VFS_INODE_DESC));
-    FLUSH_SECTOR;
+    if (!FLUSH_SECTOR)
+        return FAT_RW_ERROR;
     //! free bitmap
     hd_vfs_freefrom_FreeBitmap(&pfile->bmpfile);
     //! store bmap
     //DEB_PR_HEX("\nfree Bmp_LBA 0x",pfile->Inode.FileBitmapSector,8)
     //DEB_PR_HEX(" len 0x",pfile->bmpfile.Bitmapbytelen,8)
     memset((char*)(INT32U)pfile->bmpfile.pBitmap,0x00,pfile->bmpfile.Bitmapbytelen);
-    WRITE_SECTORS(pfile->Inode.FileBitmapSector,pfile->bmpfile.pBitmap,Drive.V_FAT.freelistsizeinlba);
+    if (!WRITE_SECTORS(pfile->Inode.FileBitmapSector,pfile->bmpfile.pBitmap,Drive.V_FAT.freelistsizeinlba))
+        return FAT_RW_ERROR;
     return err;
 }
 
@@ -535,7 +516,8 @@ static FAT_ERROR hd_vfs_printDir(INT32U Cluster)
                         stat = pInode[ix].status;
                         if(stat == INODE_BUSSY)
                             {
-                                stripCtrlE((char *)pInode[ix].EntryName);
+                                if (pInode[ix].EntryName[0] == CTRLE)
+                                    stripCtrlE((char *)pInode[ix].EntryName);
                                 printf("\n%04d ",filenumber-1);
                                 printf(" bmap lba 0x%x",pInode[ix].FileBitmapSector);
                                 printf(" %s",pInode[ix].EntryName);
@@ -593,7 +575,8 @@ static FAT_ERROR hd_vfs_createDirEntry(HD_VFS_HANDLER *phandler,INT32U Cluster,I
                             pInode->Bitmapsizeinbyte     =  Drive.V_FAT.freelistsizeinbyte;
                             sprintf((char*)pInode->EntryName,"%s",name);
                             //! store this info to disk
-                            FLUSH_SECTOR;
+                            if (!FLUSH_SECTOR)
+                                return FAT_RW_ERROR;
                             phandler->Inode                = *pInode;
                             phandler->fileinfosector       = Drive.ActSectorinBuffer;
                             phandler->fileinfosectorindex  = ix;
@@ -617,11 +600,7 @@ static FAT_ERROR hd_vfs_createDirEntry(HD_VFS_HANDLER *phandler,INT32U Cluster,I
     return err;
 }
 
-#if defined(_WIN32) || defined(_WIN64)
 static FAT_ERROR hd_vfs_Seek(HD_VFS_HANDLER *file,INT32S SkipNbyte, BOOL flReadorWrite)
-#else
-static FAT_ERROR hd_vfs_Seek(HD_VFS_HANDLER *file,INT32S SkipNbyte, int flReadorWrite)
-#endif
 {
     INT32S          NCluster;
     INT32U          Rembyte;
@@ -680,7 +659,7 @@ static FAT_ERROR hd_vfs_Seek(HD_VFS_HANDLER *file,INT32S SkipNbyte, int flReador
 
 FAT_ERROR VFS_SetVFSRecordInfo(HD_VFS_MARK_INFO *pInfo,INT8U flLinkenable)
 {
-    FAT_ERROR err;
+    FAT_ERROR err = FAT_OK;
     INT32U    tmp,offset;
     HD_VFS_HANDLER      file;
     HD_VFS_RECORD_INFO *pRecInfo;
@@ -709,7 +688,8 @@ FAT_ERROR VFS_SetVFSRecordInfo(HD_VFS_MARK_INFO *pInfo,INT8U flLinkenable)
         pRecInfo->MarkLink  = pInfo->Idx;
         pRecInfo->Linkused  = flLinkenable;
         //! save the sector
-        FLUSH_SECTOR;
+        if (!FLUSH_SECTOR)
+            return FAT_RW_ERROR;
     }else{printf("\nSet RecordMark SeekERROR!!!");}
     VFS_Exit();
     return err;
@@ -743,10 +723,12 @@ FAT_ERROR VFS_SetMarkInfoIDX(INT16U fileidx,INT16U markidx,HD_VFS_MARK_INFO *pIn
     lba += ((markidx*sizeof(HD_VFS_MARK_INFO))>>9);
     //! read the LBA
     if(Drive.ActSectorinBuffer != lba)
-        READ_SECTOR(lba);
+        if (!READ_SECTOR(lba))
+            return FAT_RW_ERROR;
     //! offset in LBA
     *(HD_VFS_MARK_INFO*)((INT8U*)&Drive.pSectorBuffer[((markidx<<6)&0x1ff)]) = *pInfo;
-    FLUSH_SECTOR;
+    if (!FLUSH_SECTOR)
+        return FAT_RW_ERROR;
     VFS_Exit();
     return FAT_OK;
 }
@@ -784,7 +766,8 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
             //! reload SectorBuffer
             if(Drive.ActSectorinBuffer != lba){
                 //! read the new
-                READ_SECTOR(lba);
+                if (!READ_SECTOR(lba))
+                    return FAT_RW_ERROR;
             }
             //! search for the correct place
             if(State == 0)
@@ -805,7 +788,8 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
                             }
                             pInfo->Idx = ix;
                             *(HD_VFS_MARK_INFO*)&Drive.pSectorBuffer[((ix<<6)&0x1ff)] = *pInfo;
-                            FLUSH_SECTOR;
+                            if (!FLUSH_SECTOR)
+                                return FAT_RW_ERROR;
                             break;
                         }else
                         if(((HD_VFS_MARK_INFO*)&Drive.pSectorBuffer[((ix<<6)&0x1ff)])->ActRecordNbr > pInfo->ActRecordNbr)
@@ -850,13 +834,15 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
                         *(HD_VFS_MARK_INFO*)&Drive.pSectorBuffer[((ix<<6)&0x1ff)] = Tmp;
                         //! check for end
                         if(!Tmp1.type){
-                            FLUSH_SECTOR;
+                            if (!FLUSH_SECTOR)
+                                return FAT_RW_ERROR;
                             break;
                         }
                         Tmp   = Tmp1;
                     }
             //!exit VFS
-            FLUSH_SECTOR;
+            if (!FLUSH_SECTOR)
+                return FAT_RW_ERROR;
             VFS_Exit();
         }
     //!exit VFS
@@ -870,18 +856,10 @@ FAT_ERROR VFS_Mount(INT32U SecLba)
     INT32U    free,tmp;
     FAT_ERROR err;
     INT8U     i=0;
-#if !defined(_WIN32) && !defined(_WIN64)
-    int readResult;
-#endif
 
     VFS_Enter();
     //! test MBR
-#if defined(_WIN32) || defined(_WIN64)
     if (!READ_SECTOR(0)) {
-#else
-    readResult   = READ_SECTOR(0);
-    if (readResult == -1) {
-#endif
         printf("Partition table can not be read!!!!\n");
         return FAT_ERROR_GEN;
     }
@@ -908,7 +886,8 @@ FAT_ERROR VFS_Mount(INT32U SecLba)
     SecLba += Drive.pSectorBuffer[(0x1be + (i*0x10)) +8+1]<<8;
     SecLba += Drive.pSectorBuffer[(0x1be + (i*0x10)) + 8];
     printf("\n mount VFS lba->0x%08x",SecLba);
-    READ_SECTOR(SecLba);
+    if (!READ_SECTOR(SecLba))
+        return FAT_RW_ERROR;
     Drive.V_FAT = *(VFS_Table*)(Drive.pSectorBuffer);
 
     printf("\n FreeBitmapLba ->0x%x" ,Drive.V_FAT.freebitmapsec     );
@@ -926,7 +905,8 @@ FAT_ERROR VFS_Mount(INT32U SecLba)
     if((VFS_MAX_U32BITMAP_SIZE<<2) < Drive.V_FAT.freelistsizeinlba*Drive.V_FAT.SectorSize){
         printf("\n ERRORRRRRR");
     }
-    READ_SECTORS(Drive.V_FAT.freebitmapsec,Drive.FreeBitmap.pBitmap,Drive.V_FAT.freelistsizeinlba);
+    if (!READ_SECTORS(Drive.V_FAT.freebitmapsec,Drive.FreeBitmap.pBitmap,Drive.V_FAT.freelistsizeinlba))
+        return FAT_RW_ERROR;
     //DEBUG_DumpData((U8*)BitMapBuf,Drive.V_FAT.freelistsizeinbyte);
 
     free = hd_vfs_count_free((INT8U*)(Drive.FreeBitmap.pBitmap),Drive.V_FAT.freelistsizeinbyte);
@@ -986,7 +966,8 @@ INT32U VFS_PutNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *e
                 file->Inode.sizeinlastcluster  = 0;
                 file->WriteClusterOffset       = 0;
             }
-            FLUSH_SECTOR;
+            if (!FLUSH_SECTOR)
+                return FAT_RW_ERROR;
         }
     //! write the rest of data
     while(size > 0)
@@ -1011,7 +992,8 @@ INT32U VFS_PutNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *e
                 //! reset sector offset
                 file->WriteClusterOffset = 0;
                 file->Inode.sizeinlastcluster  = 0;
-                WRITE_SECTORS(Sectortowrite,pData,NSectors);
+                if (!WRITE_SECTORS(Sectortowrite,pData,NSectors))
+                    return FAT_RW_ERROR;
                 tmp      = (NSectors << 9);
                 size    -= tmp;
                 pData   += tmp;
@@ -1025,7 +1007,8 @@ INT32U VFS_PutNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *e
                 }else
                     file->WriteClusterOffset       += NSectors;
                 file->Inode.sizeinlastcluster   = (file->WriteClusterOffset<<9)+tmp;
-                WRITE_SECTORS(Sectortowrite,pData,NSectors);
+                if (!WRITE_SECTORS(Sectortowrite,pData,NSectors))
+                    return FAT_RW_ERROR;
             }
         }
     //DEB_PR_HEX("\nbyte_offset 0x",file->Inode.sizeinlastcluster,8)
@@ -1095,7 +1078,8 @@ INT32U  VFS_GetNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *
                 {
                     NSectors = Drive.V_FAT.ClusterSize - tmp;
                     file->ReadClusterByteOffset = 0;
-                    READ_SECTORS(Sectortoread,pData,NSectors);
+                    if (!READ_SECTORS(Sectortoread,pData,NSectors))
+                        return FAT_RW_ERROR;
                     tmp      = (NSectors << 9);
                     size    -= tmp;
                     pData   += tmp;
@@ -1105,7 +1089,8 @@ INT32U  VFS_GetNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *
                 size    -= ((NSectors<<9)+tmp);
                 file->ReadClusterByteOffset += (NSectors<<9)+tmp;
                 if(tmp)NSectors++;
-                READ_SECTORS(Sectortoread,pData,NSectors);
+                if (!READ_SECTORS(Sectortoread,pData,NSectors))
+                    return FAT_RW_ERROR;
             }
         }
 
@@ -1169,9 +1154,9 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
             while(is--) {
                 pInode = (HD_VFS_INODE_DESC*)(INT32U)hd_vfs_ClusterRead(Cluster,offset++);
                 if(!pInode)continue;
-                if (pInode[ix].EntryName[0])
-                    stripCtrlE((char *)pInode[ix].EntryName);
                 for(ix = 0; ix < (Drive.V_FAT.SectorSize / sizeof(HD_VFS_INODE_DESC));ix++) {
+                    if (pInode[ix].EntryName[0] == CTRLE)
+                        stripCtrlE((char *)pInode[ix].EntryName);
                     if(pInode[ix].status == INODE_EOI) {
                         printf("\n Path not found (EOI)");
                         break;
@@ -1181,11 +1166,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                                 printf("\n Path found");
                                 pInode = &pInode[ix];
                                 is     = 0;
-#if defined(_WIN32) || defined(_WIN64)
-                                if((flag & O_OPEN_MASK) == O_CREAT){
-#else
-                                if (flag == O_CREAT){
-#endif
+                                if (flag == (O_RDWR|O_CREAT)){
                                     VFS_Exit();
                                     return FAT_FILE_OPEN_ERROR;
                                 } else
@@ -1195,11 +1176,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                     VFSHandler[i].EntryIDX++;
                 }
             }
-#if defined(_WIN32) || defined(_WIN64)
-            if((flag & O_OPEN_MASK) == O_OPEN) {
-#else
             if (flag == O_RDWR) {
-#endif
                 if(pInode->status == INODE_BUSSY) {
                     printf("\nopen file OK "); printf("%s",(const char*)path); printf(" Idx ->0x%x",i);
                     VFSHandler[i].Inode                 = *pInode;
@@ -1217,7 +1194,8 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                     printf(" 0x%x" ,(int)(*pfile)->bmpfile.pBitmap);
                     (*pfile)->bmpfile.Bitmapbytelen = Drive.V_FAT.freelistsizeinbyte;
                     printf("\n load bitmap");
-                    READ_SECTORS((*pfile)->Inode.FileBitmapSector,((*pfile)->bmpfile.pBitmap),Drive.V_FAT.freelistsizeinlba);
+                    if (!READ_SECTORS((*pfile)->Inode.FileBitmapSector,((*pfile)->bmpfile.pBitmap),Drive.V_FAT.freelistsizeinlba))
+                        return FAT_RW_ERROR;
                     //DEBUG_DumpData((*pfile)->bmpfile.pBitmap,0x500);
                     VFSHandler[i].lastCluster = 0;
                     hd_vfs_getendcluster(&VFSHandler[i]);
@@ -1228,11 +1206,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                     break;
                 }
             } else
-#if defined(_WIN32) || defined(_WIN64)
-                if((flag & O_OPEN_MASK) == O_CREAT) {
-#else
                 if(flag == (O_RDWR|O_CREAT)) {
-#endif
                     //hd_vfs_printDir(0);
                     //DEB_PR_INFO("\n Create file-> ")DEB_PR_INFO((const char*)path)
                     hd_vfs_createDirEntry(&VFSHandler[i],Cluster,path,0x20);
@@ -1275,8 +1249,6 @@ FAT_ERROR VFS_GetFileInfobyIndex(INT16U idx,HD_VFS_HANDLER *pHandler)
     FAT_ERROR          err = FAT_OK;
     HD_VFS_INODE_DESC *pInode;
     INT32U             Cluster,offset,Idx;
-    INT16U ix;
-    
     if(Drive.V_FAT.rootentrycounter < idx)
         return FAT_OUT_OF_SPACE;
     VFS_Enter();
@@ -1288,17 +1260,12 @@ FAT_ERROR VFS_GetFileInfobyIndex(INT16U idx,HD_VFS_HANDLER *pHandler)
     offset += (idx*sizeof(HD_VFS_INODE_DESC)) / Drive.V_FAT.SectorSize;
     //! read sector
     pInode  = ((HD_VFS_INODE_DESC*)hd_vfs_ClusterRead(Cluster,offset));
-#if 0
-    // This causes the CTRL-E character removal from the UI file list
-    // Unfortunately the file will not be found during download
-    // when this code is activated
-    if(pInode)
-        for(ix = 0;ix < (Drive.V_FAT.SectorSize / sizeof(HD_VFS_INODE_DESC));ix++)
-            if (pInode[ix].EntryName[0])
-                stripCtrlE((char *)pInode[ix].EntryName);
-#endif
     Idx     = (idx*sizeof(HD_VFS_INODE_DESC)) % Drive.V_FAT.SectorSize;
     Idx    /=  sizeof(HD_VFS_INODE_DESC);
+    // Strip leading CTRL-E character from the UI file list
+    if(pInode)
+        if (pInode[Idx].EntryName[0] == CTRLE)
+            stripCtrlE((char *)pInode[Idx].EntryName);
     //! offset in this sector
     pInode  = &pInode[Idx];
     //DEB_PR_HEX("\nCluster 0x",Cluster,4)
@@ -1317,14 +1284,12 @@ FAT_ERROR VFS_GetFileInfobyIndex(INT16U idx,HD_VFS_HANDLER *pHandler)
     return err;
 }
 
-FAT_ERROR HD_VFS_GetEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData)
+FAT_ERROR HD_VFS_GetEventInfobyFileIDX(INT16U FileIdx,INT8U *pData)
 {
     FAT_ERROR         err;
     INT32U            Sectortoread;
     printf("\nGet EventInfo ->0x%x",FileIdx);
     VFS_Enter();
-    //offset        = EntryCluster * Drive.V_FAT.ClusterSize;
-    //Sectortoread  = Drive.V_FAT.rootentryLbaSect + offset;
     Sectortoread  = Drive.V_FAT.rootentryLbaSect;
     //! offset to last dir_entry
     Sectortoread += ((Drive.V_FAT.rootentrycounter)*sizeof(HD_VFS_INODE_DESC)) / Drive.V_FAT.SectorSize;
@@ -1339,7 +1304,7 @@ FAT_ERROR HD_VFS_GetEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U 
     return err;
 }
 
-FAT_ERROR HD_VFS_PutEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U *pData)
+FAT_ERROR HD_VFS_PutEventInfobyFileIDX(INT16U FileIdx,INT8U *pData)
 {
     INT32U            Sectortoread;
     printf("\nPut EventInfo ->0x%x",FileIdx);
@@ -1353,7 +1318,8 @@ FAT_ERROR HD_VFS_PutEventInfobyFileIDX(INT32U EntryCluster,INT16U FileIdx,INT8U 
     Sectortoread += FileIdx;
     memcpy(Drive.pSectorBuffer,pData,512);
     Drive.ActSectorinBuffer = Sectortoread;
-    FLUSH_SECTOR;
+    if (!FLUSH_SECTOR)
+        return FAT_RW_ERROR;
     VFS_Exit();
     return FAT_OK;
 }
