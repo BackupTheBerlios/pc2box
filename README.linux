@@ -10,7 +10,7 @@ $ qmake -makefile pc2boxlx.pro
 $ make
 
 4. run pc2box
-$ sudo ./pc2boxlx
+$ sudo ./pc2box
 
 If you don't want to run the program as root, add the "disk" group to your user account.
 Be aware that this may weaken your system's security - a potential intruder can gain
