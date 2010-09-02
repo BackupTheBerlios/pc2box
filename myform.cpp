@@ -356,7 +356,7 @@ void MyForm::updateFileListWidget(){
     
     lock.lock();
 
-    printf("\n item %lu %p",(int)FileCounter,item);
+    printf("\n item %lu %p",FileCounter,item);
     snprintf(Str,20,"%lu",FileCounter);
 
     itemCheckBox->setText(Str);
