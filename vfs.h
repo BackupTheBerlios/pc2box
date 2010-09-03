@@ -38,7 +38,7 @@ extern "C" {
 
 #include <ddk/ntddk.h>
 #include <ddk/ntdddisk.h>
-#include <ddk/ntdddisk.h>
+// -SG- #include <ddk/ntdddisk.h>
 #include <ddk/winddk.h>
 #include <ddk/ntifs.h>
 
@@ -62,8 +62,8 @@ extern "C" {
 #endif
 
 #include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
+// -SG- #include <stdio.h>
+// -SG- #include <stdlib.h>
 #include <string.h>
 #include "types.h"
 
@@ -147,9 +147,9 @@ typedef enum {
 
 typedef enum {
 
-       INODE_EOI   = 0xff,
-       INODE_FREE  = 0x00,
-       INODE_BUSSY = 0x01
+       INODE_EOI  = 0xff,
+       INODE_FREE = 0x00,
+       INODE_BUSY = 0x01
 
 }HD_VFS_INODE_STAT;
 
@@ -239,6 +239,7 @@ typedef enum{
 }HD_VFS_FILECLOSE;
 
 typedef struct{
+
         BOOL                      Init;
         PVFS_FILESYS              VfsSys;
 
@@ -257,8 +258,8 @@ typedef enum{
 
 }HD_VFS_MARK_TYPE;
 
-#define VFS_MARKINFO_NAME_LEN     40
 /* On-disk structure */
+#define VFS_MARKINFO_NAME_LEN     40
 typedef struct{
 
         INT32U                    Idx;                                //! markIDX
@@ -289,6 +290,7 @@ typedef struct{
 
 
 #define VFS_SIG                0x14233241
+
 /* Original source: #define VFS_INFOSTR_SIZE 30
    So we are in trouble here: either support one structure or the other,
    but not both at the same time
@@ -296,15 +298,15 @@ typedef struct{
 #define VFS_INFOSTR_SIZE       32
 
 /* Original source: #define VFS_VERSION 0x00000100
-   But: This was never used by pc2box, so who knows with which version
-   of the file system VFS_INFOSTR_SIZE was changed? */
+   100 -> MarkInfo has random content and is being ignored
+   200 -> MarkInfo must be filled with content */
 #define VFS_VERSION            0x00000200
 
 /* Original source: #define VFS_INFO_STR "LaSAT VideoFS V.100"
    But: This was never used by pc2box */
 #define VFS_INFO_STR           "LaSAT VideoFS V.201"
 
-/* On recordings from a SMART MX-84 receiver, VFS_Table::ClusterSize 
+/* On recordings from receiver, VFS_Table::ClusterSize 
    contains 0x000800 - what does this mean? */
 #define VFS_CLUSTER_SIZE       0x100000
 #define VFS_RESEVED_SECT       0x80
@@ -370,9 +372,8 @@ NTSTATUS VfsUnLockVolume(PVFS_FILESYS VfsSys );
 NTSTATUS VfsDisMountVolume(PVFS_FILESYS VfsSys );
 NTSTATUS VfsOpenDevice(PVFS_FILESYS VfsSys,PUCHAR DeviceName );
 NTSTATUS VfsCloseDevice( PVFS_FILESYS VfsSys);
-NTSTATUS VfsDevtoLetter(char *DevName, const char *driver);
+NTSTATUS VfsDevtoLetter(const char *DevName, const char *driver);
 int      Unmount(const char *driver);
-void     VfsRemoveLetter(char *driver);
 //! debug.c
 void DEBUG_DumpData(U8 *ptData,U32 Size );
 //! vfs.c

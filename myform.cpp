@@ -631,7 +631,7 @@ void Disk_Thread::UpdateFileListWidget(void){
     *this->pFileCounter =0;
     for(idx = 0;idx < VFS_ROOT_ENTRIES;idx++){
         if(VFS_GetFileInfobyIndex(idx,File) == FAT_OK){
-            if(File->Inode.status == INODE_BUSSY){
+            if(File->Inode.status == INODE_BUSY){
                 *this->pFileCounter = idx+1;
                 printf("\n VFS loop %x",(int)*this->pFileCounter);
                 AddNewVFSHandler(File);
@@ -723,7 +723,7 @@ int Disk_Thread::init_vfs(int dev, bool *ping)
                 *this->pFileCounter =0;
                 for(idx = 0;idx < VFS_ROOT_ENTRIES;idx++){
                     if(VFS_GetFileInfobyIndex(idx,File) == FAT_OK){
-                        if(File->Inode.status == INODE_BUSSY){
+                        if(File->Inode.status == INODE_BUSY){
 
                             lock->lock();
                             *this->pFileCounter = idx+1;
@@ -749,7 +749,7 @@ int Disk_Thread::init_vfs(int dev, bool *ping)
     Unmount("0xdeadbeef");
     return devNr;
 }
-    
+
 void Disk_Thread::prepareFileName(char *Str)
 {
     const char wrongchar[] = {0x05, 0x22,0x2f,0x5c,0x3a,0x2a,0x3c,0x3e,0x3f};
@@ -766,30 +766,32 @@ void Disk_Thread::prepareFileName(char *Str)
     }
 }
 
-void Disk_Thread::transferCancel(void){
+void Disk_Thread::transferCancel(void)
+{
     static Filesfordownload DummyActFile={{0},0};
     printf("\n transfer cancel !!!!!!!!!!!!!!!!!!!!!");
-    
+
     lock->lock();
-    
+
     if(VFSHandler){
         VFS_CloseFile(VFSHandler,FILE_CLOSE);
         VFSHandler = 0;
     }
-    
+
     if(PCFile){
         PCFile->close();
         delete PCFile;
         PCFile =0;
     }
-    
+
     if(ActFile)       ActFile = &DummyActFile;
     if(ActPc2BoxFile) ActPc2BoxFile = &DummyActFile;
-    
+
     lock->unlock();
 }
 
-U32 Disk_Thread::CreateVFSEntry(char* name){
+U32 Disk_Thread::CreateVFSEntry(char* name)
+{
     HD_VFS_MARK_INFO  Info;
     FAT_ERROR err = FAT_FILE_OPEN_ERROR;
     U16 ix,len;
@@ -880,7 +882,6 @@ void Disk_Thread::OpenFilesForUpload(void){
 
 void Disk_Thread::StartUpload(void)
 {
-
     lock->lock();                                             // called from MyFormThread
 
     printf("\n ---------- start upload -----------------");
@@ -1134,7 +1135,8 @@ U32 Disk_Thread::FileDownloadProcessing(void)
     return 100;
 }
 
-void Disk_Thread::run(void){
+void Disk_Thread::run(void)
+{
     fpPolling   fpDiskPoll = &Disk_Thread::init_vfs;
     int count      = 0;
 #if !defined(_WIN32) && !defined(_WIN64)

@@ -1,5 +1,4 @@
 High priority:
-
 * Linux: Fix program crash when transferring multiple files (on fast systems)
          Background: While it is working on an old, slow Notebook as well as on
 	 a very recent & fast Notebook, multi-file transfer crashes with
@@ -8,7 +7,11 @@ High priority:
  
 Medium priority:
 * Linux: If more than one device with LaSat FS is connected, only
-  one (the first in the sequence of device files) will be recognized
+         one (the first in the sequence of device files) will be recognized
+* Linux: Open disk read/write to enable file upload to box ("pc2box")
+
 * Windows: Improper return code handling for VfsGetMediaInfo
+* Windows: replace "0xdeadbeef" with an instance specific string
+
 * All: Fix bFile handling
 * All: Decouple synchronization from file locking

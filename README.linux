@@ -17,8 +17,7 @@ Be aware that this may weaken your system's security - a potential intruder can 
 raw disk access (read and write)!
 
 Potential issues:
-* multiple file download - on fast systems, the program may crash after first file
+* see TODO, note that file upload ("pc2box") is currently disabled 
 
 Untested so far:
 * rec file download 
-* pc2box (file upload to LaSat FS)

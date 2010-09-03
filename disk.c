@@ -40,12 +40,12 @@
 #include <unistd.h>
 #endif
 
-#if defined(_WIN32) || defined(_WIN64)
 PUCHAR
 VfsStatusToString ( IN NTSTATUS Status )
 {
     switch (Status)
     {
+#if defined(_WIN32) || defined(_WIN64)
     case 0x00000000: return (PUCHAR)"STATUS_SUCCESS";
     case 0x00000001: return (PUCHAR)"STATUS_WAIT_1";
     case 0x00000002: return (PUCHAR)"STATUS_WAIT_2";
@@ -965,6 +965,7 @@ VfsStatusToString ( IN NTSTATUS Status )
     case 0xC0040035: return (PUCHAR)"STATUS_PNP_BAD_MPS_TABLE";
     case 0xC0040036: return (PUCHAR)"STATUS_PNP_TRANSLATION_FAILED";
     case 0xC0040037: return (PUCHAR)"STATUS_PNP_IRQ_TRANSLATION_FAILED";
+#endif
     default:         return (PUCHAR)"STATUS_UNKNOWN";
     }
 }
@@ -975,6 +976,7 @@ VfsReadDisk(  PVFS_FILESYS  VfsSys,
               ULONG         Length,
               PVOID         Buffer )
 {
+#if defined(_WIN32) || defined(_WIN64)
     LARGE_INTEGER   Address;
     NTSTATUS        Status;
     ULONG           AlignedLength;
@@ -1034,6 +1036,66 @@ errorout:
     if (NonPagedBuffer)
         free(NonPagedBuffer);
     return Status;
+#else
+    unsigned long long Address;
+    int Status = -1;
+    unsigned long AlignedLength;
+    void *NonPagedBuffer = NULL;
+
+    assert(Buffer != NULL);
+    if (VfsSys->bFile) {
+        Address = Offset;
+        // seek to Address & read length to Buffer
+        Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
+        if (Status == -1) {
+            printf("Error during seek to Address %llu %s\n", Address, strerror(errno));
+            return Status;
+        }
+
+        Status = read(VfsSys->MediaHandle, Buffer, Length);
+        if (Status == -1) {
+            printf("Error during read: %s\n", strerror(errno));
+            return Status;
+        }
+
+    } else {
+        Address = Offset & (~((unsigned long long int)SECTOR_SIZE - 1));
+        AlignedLength    = (Length + SECTOR_SIZE - 1)&(~(SECTOR_SIZE - 1));
+        AlignedLength   += ((unsigned long)(Offset - Address) + SECTOR_SIZE - 1) & (~(SECTOR_SIZE - 1));
+        NonPagedBuffer   = malloc(AlignedLength);
+        if (!NonPagedBuffer) {
+            Status = errno;
+            if (NonPagedBuffer)
+                free(NonPagedBuffer);
+            return Status;
+        }
+        if ((AlignedLength != Length) || (Address != Offset)) {
+            // seek to Address & read Alignedlength to NonPagedBuffer
+            Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
+            if (Status == -1) {
+                printf("Error during aligned seek: %s\n", strerror(errno));
+                if (NonPagedBuffer)
+                    free(NonPagedBuffer);
+                return Status;
+            }
+
+            Status = read(VfsSys->MediaHandle, NonPagedBuffer, AlignedLength);
+            if (Status == -1) {
+                printf("Error during aligned read: %s\n", strerror(errno));
+                if (NonPagedBuffer)
+                    free(NonPagedBuffer);
+                return Status;
+            }
+        }
+        memcpy ( (unsigned char *)NonPagedBuffer + (unsigned long)(Offset - Address),
+                       Buffer, Length );
+    }
+
+    if (NonPagedBuffer)
+        free(NonPagedBuffer);
+
+    return Status;
+#endif
 }
 
 NTSTATUS
@@ -1042,6 +1104,7 @@ VfsWriteDisk( PVFS_FILESYS    VfsSys,
                ULONG          Length,
                PVOID          Buffer )
 {
+#if defined(_WIN32) || defined(_WIN64)
     LARGE_INTEGER   Address;
     NTSTATUS        Status;
     ULONG           AlignedLength;
@@ -1119,11 +1182,95 @@ errorout:
         free(NonPagedBuffer);
 
     return Status;
+#else
+    unsigned long long Address;
+    int Status;
+    unsigned long AlignedLength;
+    void *NonPagedBuffer = NULL;
+
+    assert(Buffer != NULL);
+
+    if (VfsSys->bFile) {
+        Address = Offset;
+
+        // seek to Address & write file from buffer with length
+        Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
+        if (Status == -1) {
+            printf("Error during seek to Address %llu %s\n", Address, strerror(errno));
+            return Status;
+        }
+        Status = write(VfsSys->MediaHandle, Buffer, Length);
+        if (Status == -1) {
+            printf("Error during write: %s\n", strerror(errno));
+            return Status;
+        }
+    } else {
+        Address = Offset & (~((ULONGLONG)SECTOR_SIZE - 1));
+
+        AlignedLength  = (Length + SECTOR_SIZE - 1)&(~(SECTOR_SIZE - 1));
+
+        AlignedLength += ((ULONG)(Offset - Address) + SECTOR_SIZE - 1)
+                         & (~(SECTOR_SIZE - 1));
+
+        NonPagedBuffer = malloc(AlignedLength);
+        if (!NonPagedBuffer) {
+            Status = errno;
+            if (NonPagedBuffer)
+                free(NonPagedBuffer);
+            return Status;
+        }
+
+        if ((AlignedLength != Length) || (Address != Offset)) {
+
+            // seek to Address & read file from NonPagedBuffer with AlignedLength
+            Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
+            if (Status == -1) {
+                printf("Error during aligned seek: %s\n", strerror(errno));
+                if (NonPagedBuffer)
+                    free(NonPagedBuffer);
+                return Status;
+            }
+
+            Status = read(VfsSys->MediaHandle, NonPagedBuffer, AlignedLength);
+            if (Status == -1) {
+                printf("Error during aligned read: %s\n", strerror(errno));
+                if (NonPagedBuffer)
+                    free(NonPagedBuffer);
+                return Status;
+            }
+
+        }
+
+        memcpy ( (unsigned char *)NonPagedBuffer + (unsigned long)(Offset - Address),
+                       Buffer, Length );
+
+        // seek to Address & write file from NonPagedBuffer with AlignedLength
+        Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
+        if (Status == -1) {
+            printf("Error during aligned seek 2: %s\n", strerror(errno));
+            if (NonPagedBuffer)
+                free(NonPagedBuffer);
+            return Status;
+        }
+        Status = write(VfsSys->MediaHandle, NonPagedBuffer, AlignedLength);
+        if (Status == -1) {
+            printf("Error during aligned write: %s\n", strerror(errno));
+            if (NonPagedBuffer)
+                free(NonPagedBuffer);
+            return Status;
+        }
+    }
+
+    return Status;
+#endif
 }
 
 NTSTATUS
 VfsGetMediaInfo( PVFS_FILESYS VfsSys )
 {
+#if defined(_WIN32) || defined(_WIN64)
+    // Try to get media info for device; most probably not possible
+    // under Windows in case the device is locked / opened!
     NTSTATUS Status;
     IO_STATUS_BLOCK IoSb;
 
@@ -1153,11 +1300,18 @@ VfsGetMediaInfo( PVFS_FILESYS VfsSys )
 errorout:
 
     return Status;
+#else
+    // Not yet implemented for Linux
+    // Note: needs to be corrected to STATUS_SUCCESS when higher-level logic is fixed
+    VfsSys->bFile = 1;
+    return 1;
+#endif
 }
 
 NTSTATUS
 VfsLockVolume( PVFS_FILESYS VfsSys )
 {
+#if defined(_WIN32) || defined(_WIN64)
     NTSTATUS Status;
     IO_STATUS_BLOCK IoSb;
 
@@ -1177,12 +1331,17 @@ VfsLockVolume( PVFS_FILESYS VfsSys )
 errorout:
 
     return Status;
+#else
+    // Not yet implemented for Linux
+    return STATUS_SUCCESS;
+#endif
 }
 
 
 NTSTATUS
 VfsUnLockVolume( PVFS_FILESYS VfsSys )
 {
+#if defined(_WIN32) || defined(_WIN64)
     NTSTATUS Status;
     IO_STATUS_BLOCK IoSb;
 
@@ -1200,11 +1359,16 @@ VfsUnLockVolume( PVFS_FILESYS VfsSys )
 errorout:
 
     return Status;
+#else
+    // Not yet implemented for Linux
+    return STATUS_SUCCESS;
+#endif
 }
 
 NTSTATUS
 VfsDisMountVolume( PVFS_FILESYS VfsSys )
 {
+#if defined(_WIN32) || defined(_WIN64)
     NTSTATUS Status;
     IO_STATUS_BLOCK IoSb;
 
@@ -1222,12 +1386,17 @@ VfsDisMountVolume( PVFS_FILESYS VfsSys )
 errorout:
 
     return Status;
+#else
+    // Not yet implemented for Linux
+    return STATUS_SUCCESS;
+#endif
 }
 
 NTSTATUS
 VfsOpenDevice(  PVFS_FILESYS VfsSys,
                  PUCHAR        DeviceName )
 {
+#if defined(_WIN32) || defined(_WIN64)
     NTSTATUS Status;
     UNICODE_STRING UnicodeFilespec;
     OBJECT_ATTRIBUTES ObjectAttributes;
@@ -1247,7 +1416,7 @@ VfsOpenDevice(  PVFS_FILESYS VfsSys,
     memset(UnicodeName, 0, sizeof(SHORT) * 256);
     memset(UnicodeName, 0, sizeof(UCHAR) * 256);
 
-    NameLength = strlen((char *)DeviceName);
+    NameLength = strlen((const char*)DeviceName);
 
     ASSERT(NameLength < 256);
 
@@ -1264,7 +1433,7 @@ VfsOpenDevice(  PVFS_FILESYS VfsSys,
 
     AnsiFilespec.MaximumLength =
     AnsiFilespec.Length = NameLength;
-    AnsiFilespec.Buffer = (char *)AnsiName;
+    AnsiFilespec.Buffer = (PCHAR)AnsiName;
 
 
     UnicodeFilespec.MaximumLength = 256 * 2;
@@ -1310,11 +1479,20 @@ VfsOpenDevice(  PVFS_FILESYS VfsSys,
     VfsSys->MediaHandle = FileHandle;
 
     return Status;
+#else
+    VfsSys->MediaHandle = open ((char*)DeviceName, O_RDONLY | O_LARGEFILE);
+    if (VfsSys->MediaHandle == -1) {
+        printf("Error during open <%s>: %s\n", DeviceName, strerror(errno));
+    }
+
+    return VfsSys->MediaHandle;
+#endif
 }
 
 NTSTATUS
 VfsCloseDevice( PVFS_FILESYS VfsSys)
 {
+#if defined(_WIN32) || defined(_WIN64)
     NTSTATUS Status = STATUS_SUCCESS;
 
     if(VfsSys->MediaHandle)
@@ -1323,24 +1501,36 @@ VfsCloseDevice( PVFS_FILESYS VfsSys)
     }
 
     return Status;
+#else
+    int Status = -1;
+
+    if(VfsSys->MediaHandle != -1) {
+        Status = close(VfsSys->MediaHandle);
+    }
+
+    return Status;
+#endif
 }
 
 NTSTATUS
-VfsDevtoLetter(char *DevName, const char *driver)
+VfsDevtoLetter(const char *DevName, const char *driver)
 {
      NTSTATUS Status = STATUS_SUCCESS;
      printf("\n mount %s to %s",DevName,driver);
-
-	if(!DefineDosDeviceA(DDD_RAW_TARGET_PATH,(LPCSTR)driver,(LPCSTR)DevName)){
-               printf(" ERROR ");
-	       return -1;
-  	  }
-	return Status;
+#if defined(_WIN32) || defined(_WIN64)
+     if(!DefineDosDeviceA(DDD_RAW_TARGET_PATH,(LPCSTR)driver,(LPCSTR)DevName)){
+         printf(" ERROR ");
+         return -1;
+     }
+#else
+    // No direct meaning on Linux, we may want to check here if device is mounted..
+#endif
+    return Status;
 }
 
 int Unmount(const char *driver)
 {
-
+#if defined(_WIN32) || defined(_WIN64)
 	char	DosDevName[256];
 	HANDLE	device;
 	ULONG	dwBytes;
@@ -1374,7 +1564,6 @@ int Unmount(const char *driver)
 		NULL ))
 	{
 		printf("Unmount: ioctl: LockVolume %s error.\n", DosDevName);
-
 	}
 
 	if (!DeviceIoControl(
@@ -1402,215 +1591,9 @@ int Unmount(const char *driver)
 	}
 
 	return 0;
-}
-
 #else
-
-NTSTATUS VfsReadDisk(PVFS_FILESYS  VfsSys,
-                unsigned long long int Offset,
-                unsigned long int Length,
-                void *Buffer )
-{
-    unsigned long long Address;
-    int Status = -1;
-    unsigned long AlignedLength;
-    void *NonPagedBuffer = NULL;
-
-    assert(Buffer != NULL);
-    if (VfsSys->bFile) {
-        Address = Offset;
-        // seek to Address & read length to Buffer
-        Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-        if (Status == -1) {
-            printf("Error during seek to Address %llu %s\n", Address, strerror(errno));
-            return Status;
-        }
-        
-        Status = read(VfsSys->MediaHandle, Buffer, Length);
-        if (Status == -1) {
-            printf("Error during read: %s\n", strerror(errno));
-            return Status;
-        }
-
-    } else {
-        Address = Offset & (~((unsigned long long int)SECTOR_SIZE - 1));
-        AlignedLength    = (Length + SECTOR_SIZE - 1)&(~(SECTOR_SIZE - 1));
-        AlignedLength   += ((unsigned long)(Offset - Address) + SECTOR_SIZE - 1) & (~(SECTOR_SIZE - 1));
-        NonPagedBuffer   = malloc(AlignedLength);
-        if (!NonPagedBuffer) {
-            Status = errno;
-            if (NonPagedBuffer)
-                free(NonPagedBuffer);
-            return Status;
-        }
-        if ((AlignedLength != Length) || (Address != Offset)) {
-            // seek to Address & read Alignedlength to NonPagedBuffer
-            Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-            if (Status == -1) {
-                printf("Error during aligned seek: %s\n", strerror(errno));
-                if (NonPagedBuffer)
-                    free(NonPagedBuffer);
-                return Status;
-            }
-            
-            Status = read(VfsSys->MediaHandle, NonPagedBuffer, AlignedLength);
-            if (Status == -1) {
-                printf("Error during aligned read: %s\n", strerror(errno));
-                if (NonPagedBuffer)
-                    free(NonPagedBuffer);
-                return Status;
-            }
-        }
-        memcpy ( (unsigned char *)NonPagedBuffer + (unsigned long)(Offset - Address),
-                       Buffer, Length );
-    }
-
-    if (NonPagedBuffer)
-        free(NonPagedBuffer);
-
-    return Status;
-}
-
-
-NTSTATUS VfsWriteDisk(PVFS_FILESYS VfsSys,
-                 unsigned long long Offset,
-                 unsigned long Length,
-                 void * Buffer)
-{
-    unsigned long long Address;
-    int Status;
-    unsigned long AlignedLength;
-    void *NonPagedBuffer = NULL;
-
-    assert(Buffer != NULL);
-
-    if (VfsSys->bFile) {
-        Address = Offset;
-
-        // seek to Address & write file from buffer with length
-        Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-        if (Status == -1) {
-            printf("Error during seek to Address %llu %s\n", Address, strerror(errno));
-            return Status;
-        }
-        Status = write(VfsSys->MediaHandle, Buffer, Length);
-        if (Status == -1) {
-            printf("Error during write: %s\n", strerror(errno));
-            return Status;
-        }
-    } else {
-        Address = Offset & (~((ULONGLONG)SECTOR_SIZE - 1));
-        
-        AlignedLength  = (Length + SECTOR_SIZE - 1)&(~(SECTOR_SIZE - 1));
-
-        AlignedLength += ((ULONG)(Offset - Address) + SECTOR_SIZE - 1)
-                         & (~(SECTOR_SIZE - 1));
-
-        NonPagedBuffer = malloc(AlignedLength);
-        if (!NonPagedBuffer) {
-            Status = errno;
-            if (NonPagedBuffer)
-                free(NonPagedBuffer);
-            return Status;
-        }
-
-        if ((AlignedLength != Length) || (Address != Offset)) {
-
-            // seek to Address & read file from NonPagedBuffer with AlignedLength
-            Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-            if (Status == -1) {
-                printf("Error during aligned seek: %s\n", strerror(errno));
-                if (NonPagedBuffer)
-                    free(NonPagedBuffer);
-                return Status;
-            }
-            
-            Status = read(VfsSys->MediaHandle, NonPagedBuffer, AlignedLength);
-            if (Status == -1) {
-                printf("Error during aligned read: %s\n", strerror(errno));
-                if (NonPagedBuffer)
-                    free(NonPagedBuffer);
-                return Status;
-            }
-
-        }
-
-        memcpy ( (unsigned char *)NonPagedBuffer + (unsigned long)(Offset - Address),
-                       Buffer, Length );
-
-        // seek to Address & write file from NonPagedBuffer with AlignedLength
-        Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-        if (Status == -1) {
-            printf("Error during aligned seek 2: %s\n", strerror(errno));
-            if (NonPagedBuffer)
-                free(NonPagedBuffer);
-            return Status;
-        }
-        Status = write(VfsSys->MediaHandle, NonPagedBuffer, AlignedLength);
-        if (Status == -1) {
-            printf("Error during aligned write: %s\n", strerror(errno));
-            if (NonPagedBuffer)
-                free(NonPagedBuffer);
-            return Status;
-        }
-    }
-
-    return Status;
-}
-
-NTSTATUS VfsGetMediaInfo( PVFS_FILESYS VfsSys )
-{
-    // Not yet implemented for Linux
-    // Note: needs to be corrected to STATUS_SUCCESS when higher-level logic is fixed
-    return 1;
-}
-
-NTSTATUS VfsLockVolume( PVFS_FILESYS VfsSys )
-{
-    // Not yet implemented for Linux
-    return STATUS_SUCCESS;
-}
-
-NTSTATUS VfsUnLockVolume( PVFS_FILESYS VfsSys )
-{
-    // Not yet implemented for Linux
-    return STATUS_SUCCESS;
-}
-
-NTSTATUS
-VfsDevtoLetter(char *DevName, const char *driver)
-{
-    // No direct meaning on Linux, we may want to check here if device is mounted..
-    return STATUS_SUCCESS;
-}
-
-NTSTATUS VfsOpenDevice(PVFS_FILESYS VfsSys,
-                  PUCHAR DeviceName)
-{
-    VfsSys->MediaHandle = open ((char*)DeviceName, O_RDONLY | O_LARGEFILE);
-    if (VfsSys->MediaHandle == -1) {
-        printf("Error during open <%s>: %s\n", DeviceName, strerror(errno));
-    }
-    
-    return VfsSys->MediaHandle;
-}
-
-NTSTATUS VfsCloseDevice(PVFS_FILESYS VfsSys)
-{
-    int Status = -1;
-
-    if(VfsSys->MediaHandle != -1) {
-        Status = close(VfsSys->MediaHandle);
-    }
-
-    return Status;
-}
-
-int Unmount(const char *driver)
-{
-    // currently dummy - later we may need to unmount a device here
-    printf("Unmount %s\n", driver);
-    return 0;
-}
-
+        // currently dummy - later we may need to unmount a device here
+        printf("Unmount %s\n", driver);
+        return 0;
 #endif
+}

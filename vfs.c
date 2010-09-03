@@ -99,7 +99,6 @@ void stripCtrlE(char *entryName)
     free(tmpBuffer);
 }
 
-
 static INT8U VFS_Enter(void)
 {
     INT8U err = 0;
@@ -514,7 +513,7 @@ static FAT_ERROR hd_vfs_printDir(INT32U Cluster)
                             return FAT_OK;
 
                         stat = pInode[ix].status;
-                        if(stat == INODE_BUSSY)
+                        if(stat == INODE_BUSY)
                             {
                                 if (pInode[ix].EntryName[0] == CTRLE)
                                     stripCtrlE((char *)pInode[ix].EntryName);
@@ -561,7 +560,7 @@ static FAT_ERROR hd_vfs_createDirEntry(HD_VFS_HANDLER *phandler,INT32U Cluster,I
                     {
                         if(pInode->status == INODE_FREE){
                             memset((char*)pInode,0x00,sizeof(HD_VFS_INODE_DESC));
-                            pInode->status               = INODE_BUSSY;
+                            pInode->status               = INODE_BUSY;
                             pInode->type                 = FILE_ENTRY;
                             pInode->attrib               = attrib;
                             pInode->flServiceType        = 1;
@@ -585,7 +584,7 @@ static FAT_ERROR hd_vfs_createDirEntry(HD_VFS_HANDLER *phandler,INT32U Cluster,I
                             phandler->WriteActCluster      = 0;
                             phandler->WriteClusterOffset   = 0;
                             return err;
-                        }else if(pInode->status == INODE_BUSSY){
+                        }else if(pInode->status == INODE_BUSY){
                             file++;
                             pInode++;
                         }else{
@@ -863,7 +862,7 @@ FAT_ERROR VFS_Mount(INT32U SecLba)
         printf("Partition table can not be read!!!!\n");
         return FAT_ERROR_GEN;
     }
-    
+
     tmp   = Drive.pSectorBuffer[511]<<8;
     tmp  += Drive.pSectorBuffer[510];
     if(tmp != 0xAA55){
@@ -929,7 +928,7 @@ INT32U VFS_PutNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *e
     INT32U Cluster,offset,NSectors,Sectortowrite,tmp;
 
     if(*pfile == 0){
-        printf("\n sorry invalide handler for this file");
+        printf("\n sorry invalid handler for this file");
         *err = FAT_ERROR_GEN;
         return 0;
     }
@@ -1161,7 +1160,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                         printf("\n Path not found (EOI)");
                         break;
                     } else
-                        if(pInode[ix].status == INODE_BUSSY) {
+                        if(pInode[ix].status == INODE_BUSY) {
                             if(!strcmp((const char*)pInode[ix].EntryName,(const char*)path)) {
                                 printf("\n Path found");
                                 pInode = &pInode[ix];
@@ -1177,7 +1176,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                 }
             }
             if (flag == O_RDWR) {
-                if(pInode->status == INODE_BUSSY) {
+                if(pInode->status == INODE_BUSY) {
                     printf("\nopen file OK "); printf("%s",(const char*)path); printf(" Idx ->0x%x",i);
                     VFSHandler[i].Inode                 = *pInode;
                     VFSHandler[i].fileinfosector        =  Drive.ActSectorinBuffer;
@@ -1230,7 +1229,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                 }
 
         }else{
-            //DEB_PR_ERROR("\n handler bussy ->")DEB_PR_INFO((const char*)VFSHandler[i].Inode.EntryName)
+            //DEB_PR_ERROR("\n handler busy ->")DEB_PR_INFO((const char*)VFSHandler[i].Inode.EntryName)
             if(!strcmp((const char*)VFSHandler[i].Inode.EntryName,(const char*)path))
                 {
                     printf("\n file allready open!!!");
@@ -1249,6 +1248,7 @@ FAT_ERROR VFS_GetFileInfobyIndex(INT16U idx,HD_VFS_HANDLER *pHandler)
     FAT_ERROR          err = FAT_OK;
     HD_VFS_INODE_DESC *pInode;
     INT32U             Cluster,offset,Idx;
+
     if(Drive.V_FAT.rootentrycounter < idx)
         return FAT_OUT_OF_SPACE;
     VFS_Enter();
@@ -1328,9 +1328,6 @@ FAT_ERROR VFS_Open(HD_VFS_INIT *pOpen)
 {
     printf(" Init VFS support");
     Drive.VfsSys        = pOpen->VfsSys;
-#if !defined(_WIN32) && !defined(_WIN64)
-    Drive.VfsSys->bFile = 1;
-#endif
     Drive.pSectorBuffer = &SectorBuffer[0];
     Drive.ActSectorinBuffer = 0x00;
     Drive.ActLbaSector      = 0x00;
