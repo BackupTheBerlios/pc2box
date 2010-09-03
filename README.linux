@@ -4,7 +4,7 @@ Quick start for Ubuntu Linux (tested on 10.04 Lucid):
 $ sudo apt-get install qt4-dev-tools
 
 2. Generate makefile
-$ qmake -makefile pc2boxlx.pro
+$ qmake -makefile pc2box.pro
 
 3. build
 $ make
