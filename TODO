@@ -1,9 +1,4 @@
 High priority:
-* Linux: Fix program crash when transferring multiple files (on fast systems)
-         Background: While it is working on an old, slow Notebook as well as on
-	 a very recent & fast Notebook, multi-file transfer crashes with
-	 segmentation fault on a very fast Desktop PC that is equipped with
-	 a very fast SSD drive. Probably a race condition.
  
 Medium priority:
 * Linux: If more than one device with LaSat FS is connected, only

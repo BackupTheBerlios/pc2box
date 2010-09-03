@@ -229,7 +229,7 @@ static FAT_ERROR hd_vfs_getnextcluster(HD_VFS_HANDLER *pfile)
     INT32U Cluster,len,Startbit,tmp;
 
     tmp      = pfile->ReadActCluster >> 3;
-    pU8      = (INT8U*)((INT32U)pfile->bmpfile.pBitmap);
+    pU8      = (INT8U*)(pfile->bmpfile.pBitmap);
     pU8      = &pU8[tmp];
     len      = pfile->bmpfile.Bitmapbytelen-tmp;
     tmp    <<= 3;
@@ -251,7 +251,7 @@ static FAT_ERROR hd_vfs_getendcluster(HD_VFS_HANDLER *pfile)
     while(1)
         {
             tmp      = pfile->lastCluster >> 3;
-            pU8      = (INT8U*)((INT32U)pfile->bmpfile.pBitmap);
+            pU8      = (INT8U*)(pfile->bmpfile.pBitmap);
             pU8      = &pU8[tmp];
             len      = pfile->bmpfile.Bitmapbytelen-tmp;
             tmp    <<= 3;
@@ -295,7 +295,7 @@ static FAT_ERROR hd_vfs_getlastcluster(HD_VFS_HANDLER *pfile)
     INT32U Cluster,len,Startbit,tmp;
 
     tmp      = pfile->ReadActCluster >> 3;
-    pU8      = (INT8U*)((INT32U)pfile->bmpfile.pBitmap);
+    pU8      = (INT8U*)(pfile->bmpfile.pBitmap);
     pU8      = &pU8[tmp];
     len      = tmp+1;
     tmp    <<= 3;
@@ -319,7 +319,7 @@ static INT32U hd_vfs_allocCluster(VFS_BITMAP_BUFF *bmap,FAT_ERROR *err)
         return 0;
     }
     tmp      = bmap->firstfree >> 3;
-    pBuff    = (INT8U*)((INT32U)bmap->pBitmap);
+    pBuff    = (INT8U*)(bmap->pBitmap);
     pBuff    = &pBuff[tmp];
     len      = bmap->Bitmapbytelen-tmp;
     tmp    <<= 3;
@@ -394,7 +394,7 @@ static FAT_ERROR hd_vfs_freefrom_FreeBitmap(VFS_BITMAP_BUFF *pBitMap)
     while(1)
         {
             tmp      = ActCluster >> 3;
-            pU8      = (INT8U*)(INT32U)pBitMap->pBitmap;
+            pU8      = (INT8U*)pBitMap->pBitmap;
             pU8      = &pU8[tmp];
             len      = pBitMap->Bitmapbytelen-tmp;
             tmp    <<= 3;
@@ -404,7 +404,7 @@ static FAT_ERROR hd_vfs_freefrom_FreeBitmap(VFS_BITMAP_BUFF *pBitMap)
                 break;
             }
             //! clear bit from free_list
-            hd_vfs_clearbit(&((INT8U*)(INT32U)Drive.FreeBitmap.pBitmap)[((INT32U)pU8)-((INT32U)pBitMap->pBitmap)],Cluster);
+            hd_vfs_clearbit(&((INT8U*)Drive.FreeBitmap.pBitmap)[pU8-(INT8U*)pBitMap->pBitmap],Cluster);
             //! go to next cluster
             ActCluster = Cluster + tmp;
             //DEB_PR_HEX("\nfreeC 0x",ActCluster,8)
@@ -459,7 +459,7 @@ static FAT_ERROR hd_vfs_deleteFile(HD_VFS_HANDLER *pfile)
     //! store bmap
     //DEB_PR_HEX("\nfree Bmp_LBA 0x",pfile->Inode.FileBitmapSector,8)
     //DEB_PR_HEX(" len 0x",pfile->bmpfile.Bitmapbytelen,8)
-    memset((char*)(INT32U)pfile->bmpfile.pBitmap,0x00,pfile->bmpfile.Bitmapbytelen);
+    memset((char*)pfile->bmpfile.pBitmap,0x00,pfile->bmpfile.Bitmapbytelen);
     if (!WRITE_SECTORS(pfile->Inode.FileBitmapSector,pfile->bmpfile.pBitmap,Drive.V_FAT.freelistsizeinlba))
         return FAT_RW_ERROR;
     return err;
@@ -482,7 +482,7 @@ static FAT_ERROR hd_vfs_allocNcluster(HD_VFS_HANDLER *pfile,INT32U NCluster)
         }
         //! mark this in file_bmp
         pfile->bmpfile.lastallocated = Cluster;
-        pU8   = (INT8U*)((INT32U)pfile->bmpfile.pBitmap);
+        pU8   = (INT8U*)(pfile->bmpfile.pBitmap);
         mask  = Cluster >> 3;   //! /8
         pU8  += mask;
         mask  = Cluster & 0x07; //! MOD8
@@ -553,7 +553,7 @@ static FAT_ERROR hd_vfs_createDirEntry(HD_VFS_HANDLER *phandler,INT32U Cluster,I
     printf("\nCreate a DirEntry");
     phandler->EntryIDX = 0;
     do{
-        pInode = (HD_VFS_INODE_DESC*)(INT32U)hd_vfs_ClusterRead(Cluster,offset++);
+        pInode = (HD_VFS_INODE_DESC*)hd_vfs_ClusterRead(Cluster,offset++);
         if(pInode)
             {
                 for(ix = 0; ix < (Drive.V_FAT.SectorSize / sizeof(HD_VFS_INODE_DESC));ix++)
@@ -1124,7 +1124,7 @@ FAT_ERROR VFS_CloseFile(HD_VFS_HANDLER *pfile,HD_VFS_FILECLOSE store)
     pfile->ReadClusterByteOffset = 0;
     pfile->WriteActCluster       = 0;
     pfile->WriteClusterOffset    = 0;
-    printf("\n free -> 0x%08x",(int)pfile->bmpfile.pBitmap);
+    printf("\n free -> 0x%p",pfile->bmpfile.pBitmap);
     free(pfile->bmpfile.pBitmap);
     pfile->bmpfile.pBitmap       = 0;
     pfile->bmpfile.Bitmapbytelen = 0;
@@ -1151,7 +1151,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
             is = Drive.V_FAT.rootentrycounter;
             VFSHandler[i].EntryIDX = 0;
             while(is--) {
-                pInode = (HD_VFS_INODE_DESC*)(INT32U)hd_vfs_ClusterRead(Cluster,offset++);
+                pInode = (HD_VFS_INODE_DESC*)hd_vfs_ClusterRead(Cluster,offset++);
                 if(!pInode)continue;
                 for(ix = 0; ix < (Drive.V_FAT.SectorSize / sizeof(HD_VFS_INODE_DESC));ix++) {
                     if (pInode[ix].EntryName[0] == CTRLE)
@@ -1190,7 +1190,7 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                     VFSHandler[i].stat              = 1;
                     (*pfile)                        = &VFSHandler[i];
                     (*pfile)->bmpfile.pBitmap       = (INT32U *)malloc(Drive.V_FAT.freelistsizeinlba*Drive.V_FAT.SectorSize);
-                    printf(" 0x%x" ,(int)(*pfile)->bmpfile.pBitmap);
+                    printf(" 0x%p" ,(*pfile)->bmpfile.pBitmap);
                     (*pfile)->bmpfile.Bitmapbytelen = Drive.V_FAT.freelistsizeinbyte;
                     printf("\n load bitmap");
                     if (!READ_SECTORS((*pfile)->Inode.FileBitmapSector,((*pfile)->bmpfile.pBitmap),Drive.V_FAT.freelistsizeinlba))
@@ -1338,4 +1338,3 @@ INT32U VFS_GetClusterSize()
 {
     return Drive.V_FAT.ClusterSize;
 }
-
