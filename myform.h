@@ -49,7 +49,7 @@
 #include "types.h"
 #include "vfs.h"
 
-#define SW_INFO_ST " TL Version: pc2box v_2.0.2 "
+#define SW_INFO_ST " TL Version: pc2box v_2.0.3 "
 #define TEXTBROWSER_STR_LEN 0x500
 
 #define LOAD_BAR_INFOST_LEN_MAX 200
