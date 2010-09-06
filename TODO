@@ -1,5 +1,3 @@
-High priority:
- 
 Medium priority:
 * Linux: If more than one device with LaSat FS is connected, only
          one (the first in the sequence of device files) will be recognized

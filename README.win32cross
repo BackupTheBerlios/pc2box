@@ -1,0 +1,24 @@
+Quick start how to build Windows executable on Linux
+
+1. Download the MinGW cross compiling (MinGW CC) environment 
+   from http://mingw-cross-env.nongnu.org/
+
+2. Ensure that you have the prerequisite packages installed
+   http://mingw-cross-env.nongnu.org/#requirements
+
+3. Extract the package and change into the MinGW CC directory
+
+4. Build gcc and qt
+
+$ make gcc qt
+
+5. Add the MinGW CC directory to your path as described in step 4
+   of the MinGW tutorial http://mingw-cross-env.nongnu.org/#tutorial
+
+4. Change into the pc2box project directory and generate the makefile
+$ i686-pc-mingw32-qmake -makefile pc2box.pro
+
+3. build
+$ make
+
+4. find pc2box.exe in the release sub-directory
