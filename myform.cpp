@@ -348,18 +348,23 @@ void MyForm::DisplayLoadBar(){
 }
 
 void MyForm::updateFileListWidget(){
-    char *Str = (char *)malloc(20);
+    char *Str;
     QTreeWidgetItem *item   = new QTreeWidgetItem(treeWidget);
     QCheckBox *itemCheckBox = new QCheckBox(treeWidget);
 
-    Str[0] = 0;
-    
     lock.lock();
-
+    Str = (char *)malloc(20);
+    Str[0] = 0;
     printf("\n item %lu %p",FileCounter,item);
+    // Internal representation requires leading zeroes so that rows get correctly sorted
     snprintf(Str,20,"%04lu",FileCounter);
+    // Disable tree widget row selection to prevent duplicate values from
+    // re-appearing in first column
+    item->setFlags(Qt::ItemIsEnabled);
     item->setText( 0,(const char*)Str);
+    // Make first column values invisible. Still required for row sorting 
     item->setForeground(0, QBrush(Qt::transparent, Qt::NoBrush));
+    // GUI representation->without sorting
     snprintf(Str,20,"%lu",FileCounter);
     itemCheckBox->setText(Str);
     treeWidget->setItemWidget(item, 0, itemCheckBox);
