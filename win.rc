@@ -1,1 +1,7 @@
+#include "winuser.h"
+
+// embed manifest, thanks cournape:
+// http://cournape.wordpress.com/2008/09/02/how-to-embed-a-manifest-into-a-dll-with-mingw-tools-only/
+1 RT_MANIFEST pc2box.manifest
+
 IDI_ICON1               ICON    DISCARDABLE     "apps.ico"
