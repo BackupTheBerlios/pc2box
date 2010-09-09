@@ -357,10 +357,9 @@ void MyForm::updateFileListWidget(){
     lock.lock();
 
     printf("\n item %lu %p",FileCounter,item);
-    snprintf(Str,20,"%02lu",FileCounter);
+    snprintf(Str,20,"%lu",FileCounter);
 
     itemCheckBox->setText(Str);
-    item->setText( 0,(const char*)Str);
     item->setText( 1,tr((const char*)ActVfsHandler.Inode.EntryName));
     treeWidget->setItemWidget(item, 0, itemCheckBox);
 
