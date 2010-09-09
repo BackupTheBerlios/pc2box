@@ -358,9 +358,9 @@ void MyForm::updateFileListWidget(){
 
     printf("\n item %lu %p",FileCounter,item);
     snprintf(Str,20,"%04lu",FileCounter);
-
     item->setText( 0,(const char*)Str);
     item->setForeground(0, QBrush(Qt::transparent, Qt::NoBrush));
+    snprintf(Str,20,"%lu",FileCounter);
     itemCheckBox->setText(Str);
     treeWidget->setItemWidget(item, 0, itemCheckBox);
 
