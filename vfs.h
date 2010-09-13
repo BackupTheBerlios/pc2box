@@ -280,6 +280,7 @@ typedef struct{
 #define VFS_PC_VERSION_STR_LEN        512
 #define VFS_PC_ACTVERSION             "LaSAT TransportStream v.001"
 
+/* REC file header structure */
 typedef struct{
 
         INT8U             ver[VFS_PC_VERSION_STR_LEN];      // version

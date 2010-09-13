@@ -299,7 +299,7 @@ void MyForm::ShowApplicationInfo(){
 }
 
 void MyForm::clearFileListWidget(){
-    printf("\n----------- clear FileListWidget --------------");
+    printf("----------- clear FileListWidget --------------\n");
     lock.lock();
     treeWidget->clear();
     FileCounter = 0xffffffff;
@@ -308,7 +308,7 @@ void MyForm::clearFileListWidget(){
 
 void MyForm::DisplayLoadBar(){
     lock.lock();
-    printf("\nLoadBar %s %d",DownloadBar.InfoStr,(int)DownloadBar.bar);
+    printf("LoadBar %s %d\n",DownloadBar.InfoStr,(int)DownloadBar.bar);
     if(!DownloadBar.bar){
         // start popup
         pd->setLabelText( (char*)DownloadBar.InfoStr);
@@ -322,7 +322,7 @@ void MyForm::DisplayLoadBar(){
             QTreeWidgetItem *item=0;
             for(ix=0;ix<VFS_ROOT_ENTRIES;ix++){
                 item = treeWidget->topLevelItem(ix);
-                printf("\n item %x %p",(int)ix,item);
+                printf(" item %x %p\n",(int)ix,item);
                 if(item){
                     Qt::CheckState itemState = qobject_cast<QCheckBox*>(treeWidget->itemWidget(item, 0))->checkState();
                     if(itemState == Qt::Checked){
@@ -355,7 +355,7 @@ void MyForm::updateFileListWidget(){
     lock.lock();
     Str = (char *)malloc(20);
     Str[0] = 0;
-    printf("\n item %lu %p",FileCounter,item);
+    printf(" item %lu %p\n",FileCounter,item);
     // Internal representation requires leading zeroes so that rows get correctly sorted
     snprintf(Str,20,"%04lu",FileCounter);
     // Disable tree widget row selection to prevent duplicate values from
@@ -389,8 +389,8 @@ void MyForm::updateFileListWidget(){
 
 void MyForm::LoadRecFiles(){
     U32 is = countSelectedFiles();
-    printf("\n load files as REC ");
-    printf("\n %d files selected ",(int)is);
+    printf(" load files as REC\n");
+    printf(" %d files selected\n",(int)is);
     if(!is)return;
 
     //lock.lock();
@@ -399,14 +399,14 @@ void MyForm::LoadRecFiles(){
     FilestoDownload.type      = 1;
     if(!FilestoDownload.FileList){
         AddNewFileForDownload();
-    }else{printf("\n download in progress ");}
+    }else{printf(" download in progress\n");}
     //lock.unlock();
 }
 
 void MyForm::LoadTSFiles(){
     U32 is = countSelectedFiles();
-    printf("\n load files as TS ");
-    printf("\n %d files selected ",(int)is);
+    printf(" load files as TS\n");
+    printf(" %d files selected\n",(int)is);
     if(!is)return;
 
     //lock.lock();
@@ -415,7 +415,7 @@ void MyForm::LoadTSFiles(){
     FilestoDownload.type      = 2;
     if(!FilestoDownload.FileList){
         AddNewFileForDownload();
-    }else{printf("\n download in progress ");}
+    }else{printf(" download in progress\n");}
 
     //lock.unlock();
 }
@@ -458,16 +458,16 @@ void MyForm::AddNewFileForDownload(void)
                 memset((char*)File,0x00,sizeof(Filesfordownload));
                 if(ptr){
                     while(ptr->next){
-                        printf("\n next entry !!!!!");
+                        printf(" next entry !!!!!\n");
                         ptr = ptr->next;
                     }
                     ptr->next = File;
                 }else{
-                    printf("\n first entry !!!!!");
+                    printf(" first entry !!!!!\n");
                     FilestoDownload.FileList = File;
                 }
 
-                printf("\n name ->");
+                printf(" name ->\n");
                 QString  FileName = item->text(1);
                 U32      ix       = FileName.size();
                 QChar   *data     = FileName.data();
@@ -488,9 +488,9 @@ void MyForm::AddNewFileForDownload(void)
 }
 
 void MyForm::gotBeep() {
-    if(!TextBrowserStr[0])
-        textBrowser->clear();
-    else textBrowser->insertPlainText(TextBrowserStr);
+    textBrowser->clear();
+    if(TextBrowserStr[0])
+        textBrowser->insertPlainText(TextBrowserStr);
 }
 
 U32 MyForm::countSelectedFiles(void)
@@ -500,7 +500,7 @@ U32 MyForm::countSelectedFiles(void)
     //printf("\n load files as TS ");
     for(ix=0;ix<VFS_ROOT_ENTRIES;ix++){
         item = treeWidget->topLevelItem(ix);
-        printf("\n item %x %p",(int)ix,item);
+        printf(" item %x %p\n",(int)ix,item);
         if(item){
             Qt::CheckState itemState = qobject_cast<QCheckBox*>(treeWidget->itemWidget(item, 0))->checkState();
             if(itemState == Qt::Checked){
@@ -517,7 +517,7 @@ U32 MyForm::countSelectedFiles(void)
 }
 
 void MyForm::pc2box(){
-    printf("\n pc2box 0x%p",Filespc2box.FileList);
+    printf(" pc2box 0x%p\n",Filespc2box.FileList);
     //QMessageBox::warning( this, tr(" ERROR "),tr(" muss noch eingebaut werden "));
 
     if(Filespc2box.FileList){
@@ -544,7 +544,7 @@ void MyForm::pc2box(){
         while(ix--){
             if(!strncmp(str,".rec",4)){
                 str      = byteArray.constData();
-                printf("\n %s ",str);
+                printf(" %s\n",str);
                 Filespc2box.fileCount++;
 
                 Filesfordownload *File = (Filesfordownload*) malloc(sizeof(Filesfordownload));
@@ -553,12 +553,12 @@ void MyForm::pc2box(){
                 memset((char*)File,0x00,sizeof(Filesfordownload));
                 if(ptr){
                     while(ptr->next){
-                        printf("\n next entry !!!!!");
+                        printf(" next entry !!!!!\n");
                         ptr = ptr->next;
                     }
                     ptr->next = File;
                 }else{
-                    printf("\n first entry !!!!!");
+                    printf(" first entry !!!!!\n");
                     Filespc2box.FileList = File;
                 }
                 ix = strlen(str);
@@ -566,7 +566,7 @@ void MyForm::pc2box(){
                     char *Str = (char*)&File->EntryName[0];
                     while(ix--)*Str++ = *str++;
                 }else{
-                    printf("\n VFS_INODEN_NAME_LEN+5 ");
+                    printf(" VFS_INODEN_NAME_LEN+5\n");
                 }
                 break;
             }
@@ -640,7 +640,7 @@ void Disk_Thread::UpdateFileListWidget(void){
         if(VFS_GetFileInfobyIndex(idx,File) == FAT_OK){
             if(File->Inode.status == INODE_BUSY){
                 *this->pFileCounter = idx+1;
-                printf("\n VFS loop %x",(int)*this->pFileCounter);
+                printf(" VFS loop %x\n",(int)*this->pFileCounter);
                 AddNewVFSHandler(File);
                 while(*this->pFileCounter != 0xffffffff){ // sync thread
                     lock->unlock();
@@ -656,22 +656,21 @@ void Disk_Thread::UpdateFileListWidget(void){
 
 void Disk_Thread::printTextBrowser(const char *str){
     if(str){
-        sprintf(this->Str,"%s",str);
-    }else this->Str[0] = 0x00;
+        strcat(this->Str,str);
+    } else
+        this->Str[0] = 0x00;
     emit beep();
-    msleep(10); // update unsynced, wait a while to be sure
-
 }
 
 void Disk_Thread::AddNewVFSHandler(HD_VFS_HANDLER *pVfsHandler){
     if(pActVfsHandler){
         *pActVfsHandler = *pVfsHandler;
         emit FileListbeep();
-    }else{printf("\n VFSHandler not init");}
+    }else{printf(" VFSHandler not initialized\n");}
 }
 
 void Disk_Thread::updateDownloadbar(DownloadBarInfo *pInfo){
-    printf("\n bar -> %d ",(int)pInfo->bar);
+    printf(" bar -> %d\n",(int)pInfo->bar);
     *pDownloadBar = *pInfo;
     emit UpdateBarbeep();
     while(pDownloadBar->bar != 0xffffffff){ // sync it
@@ -683,36 +682,37 @@ void Disk_Thread::updateDownloadbar(DownloadBarInfo *pInfo){
 
 int Disk_Thread::init_vfs(int dev, bool *ping)
 {
-    char                DevName[100] = {0};
-    PVFS_FILESYS        VfsSys       = &FileSys;
+    char DevName[50] = {0};
+    char textMessage[100] = {0};
+    PVFS_FILESYS VfsSys = &FileSys;
     int devNr = dev;
-    
-    sprintf(DevName," Test dev  %d \n",devNr);
-    printTextBrowser(DevName);
     
 #if defined(_WIN32) || defined(_WIN64)
     sprintf(DevName,"\\Device\\Harddisk%d\\Partition0",dev);
 #else
     sprintf(DevName,"/dev/sd%c",devNr+'b');
 #endif
+    printTextBrowser(0);
+    sprintf(textMessage,"Test device %s\n",DevName);
+    printTextBrowser(textMessage);
+
     if(VfsDevtoLetter(DevName,"0xdeadbeef")){
         printTextBrowser("Dev not ready!\n");
         dev = 0;
     }else{
-        qDebug("\n DEV OK ");
+        qDebug(" DEV OK");
 #if defined(_WIN32) || defined(_WIN64)
         sprintf(DevName, "%s", "0xdeadbeef");
 #endif
         if(!NT_SUCCESS(VfsOpenDevice(VfsSys, (PUCHAR)DevName))){
             printTextBrowser("vfs:  Volume does not exist!\n");
-            printTextBrowser(0);
 #if defined(_WIN32) || defined(_WIN64)
             devNr = 0;
 #else
             devNr++;
 #endif
         }else{
-            qDebug(" DEV OPEN OK ");
+            qDebug(" DEV OPEN OK");
             VfsGetMediaInfo(VfsSys);
             VfsInit.VfsSys = VfsSys;
             VfsInit.Init   = false;
@@ -721,8 +721,7 @@ int Disk_Thread::init_vfs(int dev, bool *ping)
                 U32 idx;
                 HD_VFS_HANDLER *File = (HD_VFS_HANDLER*)malloc(sizeof(HD_VFS_HANDLER));
             
-                printTextBrowser(0);
-                printTextBrowser(" mount OK!!! \n");
+                printTextBrowser(" Device mounted OK!\n");
                     
                 VfsInit.Init   = true;
                 *ping          = true;
@@ -734,7 +733,7 @@ int Disk_Thread::init_vfs(int dev, bool *ping)
 
                             lock->lock();
                             *this->pFileCounter = idx+1;
-                            printf("\n VFS loop %x",(int)*this->pFileCounter);
+                            printf(" VFS loop %x\n",(int)*this->pFileCounter);
                             AddNewVFSHandler(File);
                             while(*this->pFileCounter != 0xffffffff){ // sync thread
                                 lock->unlock();
@@ -776,7 +775,7 @@ void Disk_Thread::prepareFileName(char *Str)
 void Disk_Thread::transferCancel(void)
 {
     static Filesfordownload DummyActFile={{0},0};
-    printf("\n transfer cancel !!!!!!!!!!!!!!!!!!!!!");
+    printf(" transfer cancelled !!!!!!!!!!!!!!!!!!!!!\n");
 
     lock->lock();
 
@@ -810,13 +809,13 @@ U32 Disk_Thread::CreateVFSEntry(char* name)
     len = strlen((const char*)FileName);
 
     for(ix = 0;ix < 999; ix++){
-        printf("\n create_file -> %s",FileName);
+        printf(" create_file -> %s\n",FileName);
         err = VFS_OpenFile(&VFSHandler,FileName,O_RDWR|O_CREAT);
         if(err == FAT_OUT_OF_SPACE){
             break;
         }else if(err != FAT_OK){
             //! find a new name
-            printf("\n try to find a new name %s",FileName);
+            printf(" try to find a new name %s\n",FileName);
             if(len>VFS_INODEN_NAME_LEN-4){
                 FileName[len] = 0x00;
                 FileName[len-1] = ((ix%10)+0x30);
@@ -841,7 +840,7 @@ U32 Disk_Thread::CreateVFSEntry(char* name)
                 }
             }
         }else{
-            printf("\n VFS_open file -> OK!!!!");
+            printf(" VFS_open file -> OK!!!!\n");
             VFSHandler->Inode.FileEventMjd = 0;
             //! set start mark
             sprintf((char*)Info.markname,"Start");
@@ -858,16 +857,16 @@ U32 Disk_Thread::CreateVFSEntry(char* name)
 }
 
 void Disk_Thread::OpenFilesForUpload(void){
-    printf("\n try  to open %s",(char*)ActPc2BoxFile->EntryName);
+    printf(" try  to open %s\n",(char*)ActPc2BoxFile->EntryName);
     PCFile = new QFile((char*)ActPc2BoxFile->EntryName);
     if(!PCFile->open(QIODevice::ReadOnly)){
         delete PCFile;
         ActPc2BoxFile = 0;
-        printf("\n can't open file ");
+        printf(" can't open file\n");
     }else{
         HD_VFS_PC_HEADER* pPC_Header = (HD_VFS_PC_HEADER*) malloc(sizeof(HD_VFS_PC_HEADER));
         PCFile->read((char*)pPC_Header,sizeof(HD_VFS_PC_HEADER));
-        printf("\n SI-EPGData-> %s",(char*)pPC_Header->Epg);
+        printf(" SI-EPGData-> %s\n",(char*)pPC_Header->Epg);
         if(strcmp((char*)pPC_Header->ver,VFS_PC_ACTVERSION)){
             PCFile->close();
             delete PCFile;
@@ -877,7 +876,7 @@ void Disk_Thread::OpenFilesForUpload(void){
                 PCFile->close();
                 delete PCFile;
                 ActPc2BoxFile = 0;
-                printf("\n can't open VFS_file ");
+                printf(" can't open VFS_file\n");
             }else{
                 memset(&MarkInfo,0x00,sizeof(MarkInfo));
                 HD_VFS_PutEventInfobyFileIDX(VFSHandler->EntryIDX,pPC_Header->Epg);
@@ -891,12 +890,12 @@ void Disk_Thread::StartUpload(void)
 {
     lock->lock();                                             // called from MyFormThread
 
-    printf("\n ---------- start upload -----------------");
+    printf(" ---------- start upload -----------------\n");
     ActPc2BoxFile = pPc2Box->FileList;
     if(ActPc2BoxFile){
         OpenFilesForUpload();
-    }else{printf("\n nothing available");}
-    printf("\n ---------- END   upload -----------------");
+    }else{printf(" nothing available\n");}
+    printf(" ---------- END   upload -----------------\n");
 
     lock->unlock();
 }
@@ -907,7 +906,7 @@ void Disk_Thread::StartDownload(void)
 
     lock->lock();
 
-    printf("\n ---------- start download ---------------");   // called from MyFormThread
+    printf(" ---------- start download ---------------\n");   // called from MyFormThread
     ActFile = pFileDownload->FileList;
     if(ActFile){
         VFS_OpenFile(&VFSHandler, ActFile->EntryName ,O_RDWR);
@@ -917,13 +916,13 @@ void Disk_Thread::StartDownload(void)
             sprintf(Str,"%s.rec",ActFile->EntryName);
         }
         stripCtrlE((char *)Str);
-        printf("\n try to open %s",Str);
+        printf(" try to open %s\n",Str);
         prepareFileName(Str);
         PCFile = new QFile(Str);
         if(!PCFile->open(QIODevice::ReadWrite)){
             delete PCFile;
             ActFile = 0;
-            printf("\n can't open file ");
+            printf(" can't open file\n");
         }else{
             if(pFileDownload->type == 1){
                 char   Epg[512] = {0};
@@ -938,8 +937,8 @@ void Disk_Thread::StartDownload(void)
                 free(pPC_Header);
             }
         }
-    }else{printf("\n nothing available");}
-    printf("\n ---------- END   download ---------------");
+    }else{printf(" nothing available\n");}
+    printf(" ---------- END   download ---------------\n");
 
     lock->unlock();
 }
@@ -954,7 +953,7 @@ U32 Disk_Thread::FileUploadProcessing(void)
             HD_VFS_RECORD_INFO *pInfo;
 
             if(PCFile->read((char*)RecordBuffer,VFS_REC_SIZE) <= 0){
-                printf("\n VFS_EOF!!!-> set end");
+                printf(" VFS_EOF!!!-> set end\n");
                 sprintf((char*)MarkInfo.markname,"End");
 
                 MarkInfo.type                 = MARK_FEND;
@@ -980,10 +979,10 @@ U32 Disk_Thread::FileUploadProcessing(void)
                 pInfo->MarkLink          = 0;
 
                 if(!VFS_PutNByte(&VFSHandler,RecordBuffer,VFS_REC_SIZE,&fat_err)){
-                    printf("\n PutByte ERROR");
+                    printf(" PutByte ERROR\n");
                 }
                 if(fat_err){
-                    printf("\n disc full !!!!");
+                    printf(" disc full !!!!\n");
                     sprintf((char*)MarkInfo.markname,"End");
                     MarkInfo.type               = MARK_FEND;
                     MarkInfo.Idx                = 1;
@@ -1055,14 +1054,14 @@ U32 Disk_Thread::FileDownloadProcessing(void)
 {
     lock->lock();
     if(ActFile){
-        printf("\n*");
+        printf("*\n");
         if(VFSHandler){
             U32 size;
             FAT_ERROR  err;
             size  = VFS_GetNByte(&VFSHandler,RecordBuffer,VFS_REC_SIZE,&err);
             if(size != VFS_REC_SIZE){
 
-                printf("\nEOF");
+                printf("EOF\n");
                 VFS_CloseFile(VFSHandler,FILE_CLOSE);
                 VFSHandler = 0;
                 PCFile->close();
@@ -1100,13 +1099,13 @@ U32 Disk_Thread::FileDownloadProcessing(void)
                     sprintf(Str,"%s.rec",ActFile->EntryName);
                 }
                 stripCtrlE((char *)Str);
-                printf("\n try to open %s",Str);
+                printf(" try to open %s\n",Str);
                 prepareFileName(Str);
                 PCFile = new QFile(Str);
                 if(!PCFile->open(QIODevice::ReadWrite)){
                     delete PCFile;
                     ActFile = 0;
-                    printf("\n can't open file ");
+                    printf(" can't open file\n");
                 }else{
                     if(pFileDownload->type == 1){
                         char   Epg[512] = {0};
@@ -1151,7 +1150,7 @@ void Disk_Thread::run(void)
 #endif
     bool pingpong= false;
 
-    printf("start thread");
+    printf("start thread\n");
     VfsInit.Init = false;
 
     ActFile       = 0;

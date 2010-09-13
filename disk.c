@@ -1516,7 +1516,7 @@ NTSTATUS
 VfsDevtoLetter(const char *DevName, const char *driver)
 {
      NTSTATUS Status = STATUS_SUCCESS;
-     printf("\n mount %s to %s",DevName,driver);
+     printf("mount %s to %s\n",DevName,driver);
 #if defined(_WIN32) || defined(_WIN64)
      if(!DefineDosDeviceA(DDD_RAW_TARGET_PATH,(LPCSTR)driver,(LPCSTR)DevName)){
          printf(" ERROR ");
