@@ -38,7 +38,6 @@ extern "C" {
 
 #include <ddk/ntddk.h>
 #include <ddk/ntdddisk.h>
-// -SG- #include <ddk/ntdddisk.h>
 #include <ddk/winddk.h>
 #include <ddk/ntifs.h>
 
@@ -62,8 +61,6 @@ extern "C" {
 #endif
 
 #include <time.h>
-// -SG- #include <stdio.h>
-// -SG- #include <stdlib.h>
 #include <string.h>
 #include "types.h"
 
@@ -175,7 +172,12 @@ typedef struct {
 
 }HD_VFS_INODE_DESC;
 
-#define VFS_MAX_U32BITMAP_SIZE  0x2000
+/* define maximum partition size (0x10 per GB partition size)
+   old default v1:   0x1000 (256 GB)
+   new default v2:   0x2000 (512 GB)
+   Firmware >= 0139: 0x4000 (1 TB)
+   now increasing to 4 TB max. partition size */
+#define VFS_MAX_U32BITMAP_SIZE  0x10000
 
 typedef struct{
 

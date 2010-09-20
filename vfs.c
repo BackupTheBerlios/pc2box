@@ -36,7 +36,6 @@
 /*-------------------------------------------------------------------*/
 /* local VAR_S                                                               */
 /*---------------------------------------------------------------------------*/
-#define VFS_MAX_U32BITMAP_SIZE  0x2000
 static VFS_VARS         Drive;
 static INT8U            SectorBuffer[512];
 static HD_VFS_HANDLER   VFSHandler[VFS_FILES_MAX_OPEN];
@@ -902,7 +901,9 @@ FAT_ERROR VFS_Mount(INT32U SecLba)
     //! load free_bitmap
     Drive.FreeBitmap.pBitmap  = BitMapBuf;
     if((VFS_MAX_U32BITMAP_SIZE<<2) < Drive.V_FAT.freelistsizeinlba*Drive.V_FAT.SectorSize){
-        printf("\n ERRORRRRRR");
+        printf("\n ERRORRRRRR: drive too big for buffer!");
+        VFS_Exit();
+        return FAT_ERROR_GEN;
     }
     if (!READ_SECTORS(Drive.V_FAT.freebitmapsec,Drive.FreeBitmap.pBitmap,Drive.V_FAT.freelistsizeinlba))
         return FAT_RW_ERROR;
