@@ -571,7 +571,7 @@ static FAT_ERROR hd_vfs_createDirEntry(HD_VFS_HANDLER *phandler,INT32U Cluster,I
                             pInode->FileBitmapSector    += (Cluster+1 * Drive.V_FAT.ClusterSize); //! offset in fat
                             pInode->FileBitmapSector    +=  file*Drive.V_FAT.freelistsizeinlba;
                             pInode->Bitmapsizeinbyte     =  Drive.V_FAT.freelistsizeinbyte;
-                            sprintf((char*)pInode->EntryName,"%s",name);
+                            snprintf((char*)pInode->EntryName,VFS_INODEN_NAME_LEN,"%s",name);
                             //! store this info to disk
                             if (!FLUSH_SECTOR)
                                 return FAT_RW_ERROR;
@@ -778,7 +778,7 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
                             //! create mark
                             if(!pInfo->type)pInfo->type = MARK_POS;
                             if(!strlen((const char*)pInfo->markname)){
-                                sprintf((char*)pInfo->markname,"Mark%d",ix);
+                                snprintf((char*)pInfo->markname,VFS_MARKINFO_NAME_LEN,"Mark%d",ix);
                             }
                             else{
                                 printf("\n use special markname ->");
@@ -798,7 +798,7 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
                                 //! create mark
                                 if(!pInfo->type)pInfo->type = MARK_POS;
                                 if(!strlen((const char*)pInfo->markname)){
-                                    sprintf((char*)pInfo->markname,"Mark%d",ix);
+                                    snprintf((char*)pInfo->markname,VFS_MARKINFO_NAME_LEN,"Mark%d",ix);
                                 }
                                 else{
                                     printf("\n use special markname ->");
