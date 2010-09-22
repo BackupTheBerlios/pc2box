@@ -349,6 +349,7 @@ void MyForm::DisplayLoadBar(){
 
 void MyForm::updateFileListWidget(){
     char *Str;
+    U32 Flen;
     QTreeWidgetItem *item   = new QTreeWidgetItem(treeWidget);
     QCheckBox *itemCheckBox = new QCheckBox(treeWidget);
 
@@ -371,9 +372,14 @@ void MyForm::updateFileListWidget(){
 
     item->setText( 1,tr((const char*)ActVfsHandler.Inode.EntryName));
 
-    Str[0]   = 0x00;
-    U32 Flen = ActVfsHandler.Inode.sizecluster * VFS_GetClusterSize();
-    Flen   = Flen>>1;
+    Str[0] = 0x00;
+    Flen   = ActVfsHandler.Inode.sizecluster;
+    if(Flen>0){
+        Flen--; // use sizeinlastcluster instead
+        Flen *= VFS_GetClusterSize();
+        Flen  = Flen>>1;
+        Flen += ActVfsHandler.Inode.sizeinlastcluster>>10;
+    }
     snprintf(Str,20,"%d Kbyte",(int)Flen);
     item->setText( 2,(const char*)Str);
 
