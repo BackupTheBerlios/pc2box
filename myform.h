@@ -47,7 +47,7 @@
 #include "vfs.h"
 #include "diskthread.h"
 
-#define SW_INFO_ST " TL Version: pc2box v_2.0.3 "
+#define SW_INFO_ST " TL Version: pc2box v_2.0.4 "
 #define TEXTBROWSER_STR_LEN 0x500
 
 

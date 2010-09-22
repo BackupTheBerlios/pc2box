@@ -137,7 +137,6 @@ int Disk_Thread::init_vfs(int dev, bool *ping)
     char textMessage[100] = {0};
     PVFS_FILESYS VfsSys = &FileSys;
     int devNr = dev;
-
     
 #if defined(_WIN32) || defined(_WIN64)
     snprintf(DevName, 50, "\\Device\\Harddisk%d\\Partition0",dev);
@@ -227,7 +226,7 @@ void Disk_Thread::prepareFileName(char *Str)
 void Disk_Thread::transferCancel(void)
 {
     static Filesfordownload DummyActFile={{0},0};
-    printf(" transfer cancel !!!!!!!!!!!!!!!!!!!!!\n");
+    printf(" transfer cancelled !!!!!!!!!!!!!!!!!!!!!\n");
 
     lock->lock();
 
@@ -346,7 +345,9 @@ void Disk_Thread::StartUpload(void)
     ActPc2BoxFile = pPc2Box->FileList;
     if(ActPc2BoxFile){
         OpenFilesForUpload();
-    }else{printf("\n nothing available");}
+    }else{
+        printf(" nothing available\n");
+    }
     printf(" ---------- END   upload -----------------\n");
 
     lock->unlock();
@@ -389,7 +390,9 @@ void Disk_Thread::StartDownload(void)
                 free(pPC_Header);
             }
         }
-    }else{printf(" nothing available\n");}
+    }else{
+        printf(" nothing available\n");
+    }
     printf(" ---------- END   download ---------------\n");
 
     lock->unlock();
