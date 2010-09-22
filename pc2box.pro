@@ -34,8 +34,9 @@ RC_FILE      = win.rc
 # QMAKE_CXXFLAGS += and QMAKE_CFLAGS += can set individual flags too
 
 # Input
-HEADERS += myform.h types.h vfs.h
+HEADERS += myform.h types.h vfs.h diskthread.h
 SOURCES += disk.c \
            main.cpp \
            myform.cpp \
+           diskthread.cpp \
            vfs.c

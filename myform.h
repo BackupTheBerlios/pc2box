@@ -1,5 +1,5 @@
 /*
- * MyForm.h - pc2box user interface header
+ * myform.h - pc2box user interface header
  *
  *  This code implements the QT-based user interface for pc2box
  *
@@ -40,99 +40,16 @@
 #include <QObject>
 #include <qwidget.h>
 #include <qmessagebox.h>
-#include <qthread.h>
-#include <QMutexLocker>
 #include <QReadWriteLock>
-#include <QFile>
 #include <QProgressDialog>
 #include <QDir>
 #include "types.h"
 #include "vfs.h"
+#include "diskthread.h"
 
 #define SW_INFO_ST " TL Version: pc2box v_2.0.3 "
 #define TEXTBROWSER_STR_LEN 0x500
 
-#define LOAD_BAR_INFOST_LEN_MAX 200
-
-typedef struct barinfo {
-    U32 bar;
-    U8 InfoStr[LOAD_BAR_INFOST_LEN_MAX];
-} DownloadBarInfo;
-
-typedef struct DownloadFiles {
-    U8 EntryName[VFS_INODEN_NAME_LEN+5];  //! name
-    struct DownloadFiles *next;
-} Filesfordownload;
-
-typedef struct {
-    U32 fileCount;
-    U32 type;
-    Filesfordownload *FileList;
-} FileDownload;
-
-typedef struct {
-    std::string a;
-    char *str;
-    HD_VFS_HANDLER *pFileHandler;
-    QMutex *pLock;
-    U32 *fileCounter;
-    FileDownload *pFileDownload;
-    FileDownload *pPc2Box;
-    DownloadBarInfo *pDownloadBar;
-} THREAD_Params;
-
-class Disk_Thread : public QThread{
-    Q_OBJECT
-
-public:
-    Disk_Thread(THREAD_Params *pParams=0);
-    virtual void    run();
-
-    char             *Str;
-    HD_VFS_HANDLER   *pActVfsHandler;
-    QMutex           *lock;
-    U32              *pFileCounter;
-    FileDownload     *pFileDownload;
-    FileDownload     *pPc2Box;
-    DownloadBarInfo  *pDownloadBar;
-
-    Filesfordownload *ActFile;
-    Filesfordownload *ActPc2BoxFile;
-    HD_VFS_HANDLER   *VFSHandler;
-    QFile            *PCFile;
-    HD_VFS_MARK_INFO MarkInfo;
-    U8               RecordBuffer[VFS_REC_SIZE+500];
-    U32              FileDownloadProcessing(void);
-    U32              FileUploadProcessing(void);
-    void             prepareFileName(char *Str);
-    U32              CreateVFSEntry(char* name);
-
-    int              init_vfs(int dev, bool *ping);
-    int              Poll_vfs(int dev, bool *ping);
-
- signals:
-    void      beep();
-    void      FileListbeep();
-    void      DiskRemovebeep();
-    void      UpdateBarbeep();
-
-    public slots:
-    void      StartDownload();
-    void      StartUpload();
-    void      transferCancel();
-
- private:
-    std::string     name;
-    VFS_FILESYS     FileSys;
-    HD_VFS_INIT     VfsInit;
-    void printTextBrowser(const char *str);
-    void AddNewVFSHandler(HD_VFS_HANDLER *pVfsHandler);
-    void updateDownloadbar(DownloadBarInfo *pInfo);
-    void OpenFilesForUpload(void);
-    void UpdateFileListWidget(void);
-};
-
-typedef int (Disk_Thread::*fpPolling)(int, bool *);
 
 class MyForm : public QWidget
 {
@@ -152,6 +69,7 @@ public:
     QSpacerItem     *spacerItem1;
     QPushButton     *pushButton;
     QPushButton     *pushButton_5;
+    QPushButton     *pushButton_6;
     QProgressDialog *pd;
     Disk_Thread     *a;
 
@@ -172,6 +90,7 @@ public slots:
     virtual void LoadRecFiles();
     virtual void LoadTSFiles();
     virtual void pc2box();
+    virtual void Rec2TS();
     void         gotBeep();
     void         updateFileListWidget();
     void         clearFileListWidget();

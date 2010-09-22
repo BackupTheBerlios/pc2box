@@ -1,6 +1,7 @@
 *.mpg
 *.o
 moc_myform.*
+moc_diskthread.*
 pc2box
 Makefile*
 *~
