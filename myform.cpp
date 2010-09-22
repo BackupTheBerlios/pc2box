@@ -627,7 +627,7 @@ void MyForm::Rec2TS()
     }
     
     buffer = (char *)malloc(sizeof(char) * sizeof(HD_VFS_PC_HEADER));
-    printf("Skipping header (%d bytes)...\n", sizeof(char) * sizeof(HD_VFS_PC_HEADER));
+    printf("Skipping header (%lu bytes)...\n", sizeof(char) * sizeof(HD_VFS_PC_HEADER));
     numread = infile.read(buffer, sizeof(char) * sizeof(HD_VFS_PC_HEADER));
 
     if ((numread < sizeof(HD_VFS_PC_HEADER)) || strncmp(buffer, VFS_PC_ACTVERSION, sizeof(VFS_PC_ACTVERSION))) {
