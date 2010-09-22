@@ -8,3 +8,7 @@ Medium priority:
 
 * All: Fix bFile handling
 * All: Decouple synchronization from file locking
+
+
+Low priority:
+* All: pc2box does not store EPG from file

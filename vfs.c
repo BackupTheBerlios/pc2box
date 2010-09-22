@@ -36,7 +36,6 @@
 /*-------------------------------------------------------------------*/
 /* local VAR_S                                                               */
 /*---------------------------------------------------------------------------*/
-#define VFS_MAX_U32BITMAP_SIZE  0x2000
 static VFS_VARS         Drive;
 static INT8U            SectorBuffer[512];
 static HD_VFS_HANDLER   VFSHandler[VFS_FILES_MAX_OPEN];
@@ -572,7 +571,7 @@ static FAT_ERROR hd_vfs_createDirEntry(HD_VFS_HANDLER *phandler,INT32U Cluster,I
                             pInode->FileBitmapSector    += (Cluster+1 * Drive.V_FAT.ClusterSize); //! offset in fat
                             pInode->FileBitmapSector    +=  file*Drive.V_FAT.freelistsizeinlba;
                             pInode->Bitmapsizeinbyte     =  Drive.V_FAT.freelistsizeinbyte;
-                            sprintf((char*)pInode->EntryName,"%s",name);
+                            snprintf((char*)pInode->EntryName,VFS_INODEN_NAME_LEN,"%s",name);
                             //! store this info to disk
                             if (!FLUSH_SECTOR)
                                 return FAT_RW_ERROR;
@@ -779,7 +778,7 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
                             //! create mark
                             if(!pInfo->type)pInfo->type = MARK_POS;
                             if(!strlen((const char*)pInfo->markname)){
-                                sprintf((char*)pInfo->markname,"Mark%d",ix);
+                                snprintf((char*)pInfo->markname,VFS_MARKINFO_NAME_LEN,"Mark%d",ix);
                             }
                             else{
                                 printf(" use special markname ->");
@@ -799,7 +798,7 @@ FAT_ERROR VFS_SetMarkInfo(INT16U fileidx,HD_VFS_MARK_INFO *pInfo)
                                 //! create mark
                                 if(!pInfo->type)pInfo->type = MARK_POS;
                                 if(!strlen((const char*)pInfo->markname)){
-                                    sprintf((char*)pInfo->markname,"Mark%d",ix);
+                                    snprintf((char*)pInfo->markname,VFS_MARKINFO_NAME_LEN,"Mark%d",ix);
                                 }
                                 else{
                                     printf(" use special markname ->");
@@ -902,7 +901,9 @@ FAT_ERROR VFS_Mount(INT32U SecLba)
     //! load free_bitmap
     Drive.FreeBitmap.pBitmap  = BitMapBuf;
     if((VFS_MAX_U32BITMAP_SIZE<<2) < Drive.V_FAT.freelistsizeinlba*Drive.V_FAT.SectorSize){
-        printf(" ERRORRRRRR\n");
+        printf(" ERRORRRRRR: drive too big for buffer!\n");
+        VFS_Exit();
+        return FAT_ERROR_GEN;
     }
     if (!READ_SECTORS(Drive.V_FAT.freebitmapsec,Drive.FreeBitmap.pBitmap,Drive.V_FAT.freelistsizeinlba))
         return FAT_RW_ERROR;

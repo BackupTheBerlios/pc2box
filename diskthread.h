@@ -49,7 +49,7 @@ typedef struct {
 
 typedef struct {
     std::string a;
-    char *str;
+    char *strOutput;
     HD_VFS_HANDLER *pFileHandler;
     QMutex *pLock;
     U32 *fileCounter;
@@ -65,7 +65,7 @@ public:
     Disk_Thread(THREAD_Params *pParams=0);
     virtual void    run();
 
-    char             *Str;
+    char             *strOutput;
     HD_VFS_HANDLER   *pActVfsHandler;
     QMutex           *lock;
     U32              *pFileCounter;

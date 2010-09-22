@@ -271,7 +271,7 @@ MyForm::MyForm( QWidget* parent, const char* name){
     //! start threating
     THREAD_Params ThreadParams;
     ThreadParams.a              = "MyThread";
-    ThreadParams.str            = this->TextBrowserStr;
+    ThreadParams.strOutput      = this->TextBrowserStr;
     ThreadParams.pFileHandler   = &this->ActVfsHandler;
     ThreadParams.pLock          = &this->lock;
     ThreadParams.fileCounter    = &this->FileCounter;
@@ -518,14 +518,13 @@ U32 MyForm::countSelectedFiles(void)
         }
     }
     if(!is){
-        QMessageBox::warning( this, tr(" ERROR "),tr(" nicht's selektiert? "));
+        QMessageBox::warning( this, tr(" ERROR "),tr(" nothing selected? "));
         return 0;
     }else return is;
 }
 
 void MyForm::pc2box(){
     printf(" pc2box 0x%p\n",Filespc2box.FileList);
-    //QMessageBox::warning( this, tr(" ERROR "),tr(" muss noch eingebaut werden "));
 
     if(Filespc2box.FileList){
         QMessageBox::warning( this, tr(" ERROR "),tr(" upload running "));
@@ -549,6 +548,9 @@ void MyForm::pc2box(){
         const char *str      = byteArray.constData();
         U32 ix               = strlen(str);
         while(ix--){
+            // Try to find ".rec" somewhere in file name
+            // potential bug with a file called "my.record.saved.as.mpg"
+            // Better open the file and check whether it starts with VFS_PC_ACTVERSION
             if(!strncmp(str,".rec",4)){
                 str      = byteArray.constData();
                 printf(" %s\n",str);
@@ -573,7 +575,13 @@ void MyForm::pc2box(){
                     char *Str = (char*)&File->EntryName[0];
                     while(ix--)*Str++ = *str++;
                 }else{
-                    printf(" VFS_INODEN_NAME_LEN+5\n");
+                    // File name too long to fit in EntryName[]
+                    // Results in file not being read in FileUploadProcessing
+                    // FIX: remove file from list
+                    printf(" VFS_INODEN_NAME_LEN+5 ==> unable to upload this file\n");
+                    ptr->next = 0;
+                    Filespc2box.fileCount--;
+                    free(File);
                 }
                 break;
             }
@@ -582,7 +590,7 @@ void MyForm::pc2box(){
     }
 
     if(!Filespc2box.fileCount){
-        QMessageBox::warning( this, tr(" ERROR "),tr(" kein *.rec gefunden "));
+        QMessageBox::warning( this, tr(" ERROR "),tr(" no suitable *.rec file found "));
         return;
     }else{
         emit Startpc2boxbeep();
@@ -601,9 +609,7 @@ void MyForm::Rec2TS()
     QMessageBox msgBox;
     
     outFileName.replace(".rec", ".ts", Qt::CaseInsensitive);
-    
     printf("Converting <%s> to <%s>\n", fileName.toStdString().c_str(), outFileName.toStdString().c_str());
-    
     infile.setFileName(fileName);
     outfile.setFileName(outFileName);
     
