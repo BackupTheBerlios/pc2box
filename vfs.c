@@ -1052,7 +1052,7 @@ INT32U  VFS_GetNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *
                 file->ReadClusterByteOffset  = 0;
         }
     if(file->ReadActCluster == file->lastCluster){
-        if((pfile->ReadClusterByteOffset + Size) > file->Inode.sizeinlastcluster){
+        if((file->ReadClusterByteOffset + Size) > file->Inode.sizeinlastcluster){
             printf("\nLINODE!!!");
             *err = FAT_EOC;
             VFS_Exit();
