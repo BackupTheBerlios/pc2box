@@ -390,6 +390,7 @@ void MyForm::updateFileListWidget(){
         Flen *= VFS_GetClusterSize();
         Flen  = Flen>>1;
         Flen += ActVfsHandler.Inode.sizeinlastcluster>>10;
+        Flen += sizeof(HD_VFS_PC_HEADER)>>10;
     }
     snprintf(Str,20,"%d Kbyte",(int)Flen);
     item->setText( 2,(const char*)Str);
