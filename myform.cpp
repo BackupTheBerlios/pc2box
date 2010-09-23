@@ -268,6 +268,11 @@ MyForm::MyForm( QWidget* parent, const char* name){
     QObject::connect(pushButton_6 , SIGNAL(clicked(bool)), this, SLOT(Rec2TS()));
 
     retranslateUi(this);
+
+    // Mandatory initializations - without these, download does not start on Linux
+    this->FilestoDownload.FileList = 0;
+    this->Filespc2box.FileList = 0;
+
     //! start threating
     THREAD_Params ThreadParams;
     ThreadParams.a              = "MyThread";
@@ -627,7 +632,7 @@ void MyForm::Rec2TS()
     }
     
     buffer = (char *)malloc(sizeof(char) * sizeof(HD_VFS_PC_HEADER));
-    printf("Skipping header (%lu bytes)...\n", sizeof(char) * sizeof(HD_VFS_PC_HEADER));
+    printf("Skipping header (%lu bytes)...\n", (unsigned long int)(sizeof(char) * sizeof(HD_VFS_PC_HEADER)));
     numread = infile.read(buffer, sizeof(char) * sizeof(HD_VFS_PC_HEADER));
 
     if ((numread < sizeof(HD_VFS_PC_HEADER)) || strncmp(buffer, VFS_PC_ACTVERSION, sizeof(VFS_PC_ACTVERSION))) {
