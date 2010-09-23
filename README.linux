@@ -18,6 +18,3 @@ raw disk access (read and write)!
 
 Potential issues:
 * see TODO, note that file upload ("pc2box") is currently disabled 
-
-Untested so far:
-* rec file download 
