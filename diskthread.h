@@ -48,7 +48,7 @@ typedef struct {
 } FileDownload;
 
 typedef struct {
-    std::string a;
+    std::string threadName;
     char *strOutput;
     HD_VFS_HANDLER *pFileHandler;
     QMutex *pLock;

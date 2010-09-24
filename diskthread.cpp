@@ -33,7 +33,7 @@
 
 Disk_Thread::Disk_Thread(THREAD_Params *pParams)
 {
-    this->name           = pParams->a;
+    this->name           = pParams->threadName;
     this->strOutput      = pParams->strOutput;
     this->pActVfsHandler = pParams->pFileHandler;
     this->lock           = pParams->pLock;

@@ -31,8 +31,8 @@
 #include <fcntl.h>
 #include "vfs.h"
 
-MyForm::MyForm( QWidget* parent, const char* name){
-
+MyForm::MyForm()
+{
     setObjectName( "MyForm" );
     setWindowIcon(QIcon(QString::fromUtf8("gs_t.xpm")));
 
@@ -246,7 +246,7 @@ MyForm::MyForm( QWidget* parent, const char* name){
     gridLayout->addWidget(pushButton_5, 4, 0, 1, 1);
 
     pushButton_6 = new QPushButton(this);
-    pushButton_6->setObjectName(QString::fromUtf8("pushButton_5"));
+    pushButton_6->setObjectName(QString::fromUtf8("pushButton_6"));
 
     gridLayout->addWidget(pushButton_6, 3, 0, 1, 1);
 
@@ -273,9 +273,9 @@ MyForm::MyForm( QWidget* parent, const char* name){
     this->FilestoDownload.FileList = 0;
     this->Filespc2box.FileList = 0;
 
-    //! start threating
+    // Setup data structures that are shared with the disk thread
     THREAD_Params ThreadParams;
-    ThreadParams.a              = "MyThread";
+    ThreadParams.threadName     = "MyThread";
     ThreadParams.strOutput      = this->TextBrowserStr;
     ThreadParams.pFileHandler   = &this->ActVfsHandler;
     ThreadParams.pLock          = &this->lock;
@@ -288,6 +288,7 @@ MyForm::MyForm( QWidget* parent, const char* name){
     pd->setAutoReset(0);
     pd->setWindowModality(Qt::WindowModal);
 
+    //! Start threading
     a = new Disk_Thread(&ThreadParams);
     QObject::connect( a, SIGNAL( beep() ), this, SLOT( gotBeep() ) );                       // update Textbrowser
     QObject::connect( a, SIGNAL( FileListbeep() ), this, SLOT( updateFileListWidget() ) );  // update FileListWidget
