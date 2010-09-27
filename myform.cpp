@@ -295,7 +295,7 @@ MyForm::MyForm()
     QObject::connect( a, SIGNAL( DiskRemovebeep() ), this, SLOT( clearFileListWidget() ) ); // clear  FileListWidget
     QObject::connect( a, SIGNAL( UpdateBarbeep() ), this, SLOT( DisplayLoadBar() ) );       // clear  FileListWidget
     QObject::connect( this, SIGNAL( StartDownloadbeep() ), a, SLOT( StartDownload() ) );    // start  download
-    QObject::connect( this, SIGNAL( Startpc2boxbeep() )  , a, SLOT( StartUpload() ) );
+    QObject::connect( this, SIGNAL( Startpc2boxbeep() )  , a, SLOT( StartUpload() ) );      // start upload/pc2box
 
     QObject::connect(pd, SIGNAL(canceled()), a, SLOT(transferCancel()));
     a->start();

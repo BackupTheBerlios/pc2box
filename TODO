@@ -1,14 +1,22 @@
 Medium priority:
-* Linux: If more than one device with LaSat FS is connected, only
+* Linux: Add support for multiple devices with LaSat FS
+         If more than one device with LaSat FS is connected, only
          one (the first in the sequence of device files) will be recognized
 * Linux: Open disk read/write to enable file upload to box ("pc2box")
 
 * Windows: Improper return code handling for VfsGetMediaInfo
+           STATUS_SUCCESS is 0, but code in Poll_vfs() continues in case of 
+           non-zero return code
 * Windows: replace "0xdeadbeef" with an instance specific string
 
-* All: Fix bFile handling
+* All: Fix bFile handling, currently not initialized on Windows
 * All: Decouple synchronization from file locking
-
+* All: Eliminate timing-based synchronization (msleep()) if possible
+* All: Prevent multiple file list updates during startup
 
 Low priority:
 * All: pc2box does not store EPG from file
+* All: pc2box does not get EPG from Receiver when downloading to REC file.
+       Need to get information where to find EPG, potentially from LaSat
+       or via reverse engineering (SMART MX-84: found at VFS_table + 0x1FA00,
+       length 0x200 per Entry, character 0x05 used as delimiter)

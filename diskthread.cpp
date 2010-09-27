@@ -49,8 +49,8 @@ int Disk_Thread::Poll_vfs(int dev, bool *ping)
 
     // Try to get media info for device; most probably not possible
     // under Windows in case the device is locked / opened!
-    // Potential bug here: returns 0 in case of success, so should be
-    // negative logic!!??
+    // Potential bug here: returns STATUS_SUCCESS (0) in case of success, 
+    // so should be negative logic!!??
     if(VfsGetMediaInfo(VfsSys)){
         lock->lock();
 
@@ -308,7 +308,7 @@ U32 Disk_Thread::CreateVFSEntry(char* name)
 }
 
 void Disk_Thread::OpenFilesForUpload(void){
-    printf(" try  to open %s\n",(char*)ActPc2BoxFile->EntryName);
+    printf(" try to open %s\n",(char*)ActPc2BoxFile->EntryName);
     PCFile = new QFile((char*)ActPc2BoxFile->EntryName);
     if(!PCFile->open(QIODevice::ReadOnly)){
         delete PCFile;
@@ -437,7 +437,7 @@ U32 Disk_Thread::FileUploadProcessing(void)
                     printf(" PutByte ERROR\n");
                 }
                 if(fat_err){
-                    printf(" disc full !!!!\n");
+                    printf(" disk full !!!!\n");
                     snprintf((char*)MarkInfo.markname,VFS_MARKINFO_NAME_LEN,"End");
                     MarkInfo.type               = MARK_FEND;
                     MarkInfo.Idx                = 1;
@@ -497,7 +497,7 @@ U32 Disk_Thread::FileUploadProcessing(void)
                 updateDownloadbar(&Bar);
 
                 UpdateFileListWidget();
-                printf("ENDE");
+                printf("END");
             }
         }
     }
@@ -589,7 +589,7 @@ U32 Disk_Thread::FileDownloadProcessing(void)
                 memset(&Bar,0x00,sizeof(DownloadBarInfo));
                 Bar.bar = 0xffff0000;
                 updateDownloadbar(&Bar);
-                printf("ENDE");
+                printf("END");
             }
         }
     }
@@ -634,7 +634,7 @@ void Disk_Thread::run(void)
             }else{
                 fpDiskPoll = &Disk_Thread::init_vfs;
             }
-            pingpong = 0;
+            pingpong = false;
         }
 #endif
         //--------------------------
