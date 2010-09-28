@@ -382,6 +382,7 @@ void Disk_Thread::StartDownload(void)
                 HD_VFS_PC_HEADER* pPC_Header = (HD_VFS_PC_HEADER*) malloc(sizeof(HD_VFS_PC_HEADER));
                 memset(pPC_Header->ver,0x00,sizeof(pPC_Header->ver));
                 memset(pPC_Header->Epg,0x00,sizeof(pPC_Header->Epg));
+                HD_VFS_GetEventInfobyFileIDX(VFSHandler->EntryIDX, (INT8U *)Epg);
                 memcpy(pPC_Header->Epg,Epg,512);
                 memset(pPC_Header->MarkInfo,0x00,sizeof(pPC_Header->MarkInfo));
                 snprintf((char*)pPC_Header->ver,VFS_PC_VERSION_STR_LEN,"%s",VFS_PC_ACTVERSION);
@@ -568,6 +569,7 @@ U32 Disk_Thread::FileDownloadProcessing(void)
                         HD_VFS_PC_HEADER* pPC_Header = (HD_VFS_PC_HEADER*) malloc(sizeof(HD_VFS_PC_HEADER));
                         memset(pPC_Header->ver,0x00,sizeof(pPC_Header->ver));
                         memset(pPC_Header->Epg,0x00,sizeof(pPC_Header->Epg));
+                        HD_VFS_GetEventInfobyFileIDX(VFSHandler->EntryIDX, (INT8U *)Epg);
                         memcpy(pPC_Header->Epg,Epg,512);
                         memset(pPC_Header->MarkInfo,0x00,sizeof(pPC_Header->MarkInfo));
                         snprintf((char*)pPC_Header->ver,VFS_PC_VERSION_STR_LEN,"%s",VFS_PC_ACTVERSION);
