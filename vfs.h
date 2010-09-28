@@ -365,7 +365,7 @@ typedef struct{
 #ifdef __cplusplus
 extern "C" {
 #endif
-//! Disk.c
+//! disk.c
 PUCHAR   VfsStatusToString (IN NTSTATUS Status );
 NTSTATUS VfsReadDisk(PVFS_FILESYS  VfsSys,ULONGLONG Offset,ULONG   Length,PVOID Buffer);
 NTSTATUS VfsWriteDisk(PVFS_FILESYS  VfsSys,ULONGLONG  Offset,ULONG  Length,PVOID Buffer);
@@ -377,8 +377,6 @@ NTSTATUS VfsOpenDevice(PVFS_FILESYS VfsSys,PUCHAR DeviceName );
 NTSTATUS VfsCloseDevice( PVFS_FILESYS VfsSys);
 NTSTATUS VfsDevtoLetter(const char *DevName, const char *driver);
 int      Unmount(const char *driver);
-//! debug.c
-void DEBUG_DumpData(U8 *ptData,U32 Size );
 //! vfs.c
 FAT_ERROR VFS_Open(HD_VFS_INIT *pOpen);
 FAT_ERROR VFS_Mount(INT32U SecLba);
@@ -393,20 +391,6 @@ FAT_ERROR VFS_CloseFile(HD_VFS_HANDLER *pfile,HD_VFS_FILECLOSE store);
 INT32U    VFS_GetClusterSize();
 FAT_ERROR HD_VFS_GetEventInfobyFileIDX(INT16U FileIdx,INT8U *pData);
 FAT_ERROR HD_VFS_PutEventInfobyFileIDX(INT16U FileIdx,INT8U *pData);
-FAT_ERROR VFS_ReinitVFSRecordList(HD_VFS_HANDLER *pfile,INT16U MarkIdx);
-//! main.cpp
-int       main_test_dev();
-FAT_ERROR main_StoreEventInfo(INT8U* pEpg);
-int       main_init_vfs(void* text);
-int       main_dir_vfs(void * list);
-FAT_ERROR main_ItemSelectToStore(void* Item,double* LastRecord,char *pEpg);
-INT8U*    main_GetRecord(FAT_ERROR *err);
-INT8U*    main_PutRecord(void* input,FAT_ERROR *err);
-FAT_ERROR main_CloseStore();
-void      Maindebug(char* str);
-void      print_to_output(char *str,void *output);
-FAT_ERROR CreateVFSEntry(char* name);
-__int64   FileSize64( const char * szFileName);
 void      stripCtrlE(char *entryName);
 #ifdef __cplusplus
 }
