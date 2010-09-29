@@ -1480,7 +1480,7 @@ VfsOpenDevice(  PVFS_FILESYS VfsSys,
 
     return Status;
 #else
-    VfsSys->MediaHandle = open ((char*)DeviceName, O_RDONLY | O_LARGEFILE);
+    VfsSys->MediaHandle = open ((char*)DeviceName, O_RDWR | O_LARGEFILE);
     if (VfsSys->MediaHandle == -1) {
         printf("Error during open <%s>: %s\n", DeviceName, strerror(errno));
     }

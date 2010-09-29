@@ -2,7 +2,6 @@ Medium priority:
 * Linux: Add support for multiple devices with LaSat FS
          If more than one device with LaSat FS is connected, only
          one (the first in the sequence of device files) will be recognized
-* Linux: Open disk read/write to enable file upload to box ("pc2box")
 
 * Windows: Improper return code handling for VfsGetMediaInfo
            STATUS_SUCCESS is 0, but code in Poll_vfs() continues in case of 
@@ -13,6 +12,3 @@ Medium priority:
 * All: Decouple synchronization from file locking
 * All: Eliminate timing-based synchronization (msleep()) if possible
 * All: Prevent multiple file list updates during startup
-
-Low priority:
-* All: pc2box does not store EPG from REC file to device

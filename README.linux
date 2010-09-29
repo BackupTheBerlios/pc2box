@@ -15,6 +15,3 @@ $ sudo ./pc2box
 If you don't want to run the program as root, add the "disk" group to your user account.
 Be aware that this may weaken your system's security - a potential intruder can gain
 raw disk access (read and write)!
-
-Potential issues:
-* see TODO, note that file upload ("pc2box") is currently disabled 
