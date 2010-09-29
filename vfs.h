@@ -120,57 +120,49 @@ typedef struct _vfs_filesys
 #endif
 
 typedef enum{
-
-          FAT_OK         = 0,
-          FAT_BADPARAM,
-          FAT_DEVICENOTSUPPORTED,
-          FAT_ERROR_GEN,
-          FAT_ALREADY_INITIALIZED,
-          FAT_FILE_OPEN_ERROR,
-          FAT_EOC,
-          FAT_TABLE_ERROR,
-          FAT_OUT_OF_SPACE,
-          FAT_BAD_CLUSTER,
-          FAT_RW_ERROR
-
-}FAT_ERROR;
+    FAT_OK         = 0,
+    FAT_BADPARAM,
+    FAT_DEVICENOTSUPPORTED,
+    FAT_ERROR_GEN,
+    FAT_ALREADY_INITIALIZED,
+    FAT_FILE_OPEN_ERROR,
+    FAT_EOC,
+    FAT_TABLE_ERROR,
+    FAT_OUT_OF_SPACE,
+    FAT_BAD_CLUSTER,
+    FAT_RW_ERROR
+} FAT_ERROR;
 
 typedef enum {
-
-       FILE_ENTRY = 0x10,
-       DIR_ENTRY  = 0x20
-
-}INODE_TYPE;
+    FILE_ENTRY = 0x10,
+    DIR_ENTRY  = 0x20
+} INODE_TYPE;
 
 typedef enum {
-
-       INODE_EOI  = 0xff,
-       INODE_FREE = 0x00,
-       INODE_BUSY = 0x01
-
-}HD_VFS_INODE_STAT;
+    INODE_EOI  = 0xff,
+    INODE_FREE = 0x00,
+    INODE_BUSY = 0x01
+} HD_VFS_INODE_STAT;
 
 /* On-disk structure describing a file */
 typedef struct {
-
-   INT8U                    status;                          //! status
-   INT8U                    type;                            //! dir file system
-   INT8U                    attrib;                          //! --rw-- --ro--
-   INT8U                    flServiceType;
-
-   INT8U                    EntryName[VFS_INODEN_NAME_LEN];  //! name
+    INT8U                    status;                          //! status
+    INT8U                    type;                            //! dir file system
+    INT8U                    attrib;                          //! --rw-- --ro--
+    INT8U                    flServiceType;
+    
+    INT8U                    EntryName[VFS_INODEN_NAME_LEN];  //! name
 //! file size
-   INT32U                   sizecluster;                     //! size in cluster
-   INT32U                   sizeinlastcluster;               //! bytesize in last cluster
+    INT32U                   sizecluster;                     //! size in cluster
+    INT32U                   sizeinlastcluster;               //! bytesize in last cluster
 //! bitmap pos
-   INT32U                   FileBitmapSector;                //! pos of bitmap
-   INT32U                   U8Offset;
-   INT32U                   Bitmapsizeinbyte;
-
-   INT32U                   FileEventMjd;
-   INT32U                   LastRecTime;
-
-}HD_VFS_INODE_DESC;
+    INT32U                   FileBitmapSector;                //! pos of bitmap
+    INT32U                   U8Offset;
+    INT32U                   Bitmapsizeinbyte;
+    
+    INT32U                   FileEventMjd;
+    INT32U                   LastRecTime;
+} HD_VFS_INODE_DESC;
 
 /* define maximum partition size (0x10 per GB partition size)
    old default v1:   0x1000 (256 GB)
@@ -180,102 +172,86 @@ typedef struct {
 #define VFS_MAX_U32BITMAP_SIZE  0x10000
 
 typedef struct{
-
-        INT32U *pBitmap;
-        INT32U  Bitmapbytelen;
-        INT32U  firstfree;
-        INT32U  lastallocated;
-
-}VFS_BITMAP_BUFF;
+    INT32U *pBitmap;
+    INT32U  Bitmapbytelen;
+    INT32U  firstfree;
+    INT32U  lastallocated;
+} VFS_BITMAP_BUFF;
 
 typedef struct{
-
-        INT16U                    stat;
-        HD_VFS_INODE_DESC         Inode;
-        VFS_BITMAP_BUFF           bmpfile;
-        INT16U                    EntryIDX;
-        INT32U                    lastCluster;
-
-        //! location of fileinfo
-        INT32U                    fileinfosector;
-        INT16U                    fileinfosectorindex;
-        //! act_read
-        INT32U                    ReadActCluster;                 //! cluster offset
-        INT32U                    ReadClusterByteOffset;          //! byte offset in cluster
-        //! act_write
-        INT32U                    WriteActCluster;                //! cluster offset
-        INT32U                    WriteClusterOffset;             //! sector offset in cluster
-
-}HD_VFS_HANDLER;
+    INT16U                    stat;
+    HD_VFS_INODE_DESC         Inode;
+    VFS_BITMAP_BUFF           bmpfile;
+    INT16U                    EntryIDX;
+    INT32U                    lastCluster;
+    
+    //! location of fileinfo
+    INT32U                    fileinfosector;
+    INT16U                    fileinfosectorindex;
+    //! act_read
+    INT32U                    ReadActCluster;                 //! cluster offset
+    INT32U                    ReadClusterByteOffset;          //! byte offset in cluster
+    //! act_write
+    INT32U                    WriteActCluster;                //! cluster offset
+    INT32U                    WriteClusterOffset;             //! sector offset in cluster
+} HD_VFS_HANDLER;
 
 typedef struct{
-
-        INT8U                     type;
-        INT8U                     U8OfsTsToPictHead;     // Offset from Rec.Head to PictureHeader (HW: PictType:CaseInfo)
-        INT32U                    OfsTsHead;
-
-}HD_VFS_INDEX_INFO;
+    INT8U                     type;
+    INT8U                     U8OfsTsToPictHead;     // Offset from Rec.Head to PictureHeader (HW: PictType:CaseInfo)
+    INT32U                    OfsTsHead;
+} HD_VFS_INDEX_INFO;
 
 #define PIC_IDX_MAX               10
 typedef struct{
-
-        INT32U                    ActRecordNbr;          // 4
-        INT32U                    RecHdTimeStamp;        // 4
-        INT16U                    ActChId;               // 2
-        INT16U                    ActVideoPid;           // 2
-        INT16U                    ActAudioPid;           // 2
-        INT16U                    ActAc3Pid;             // 2
-        INT8U                     NbrOfHeads;            // 1
-        HD_VFS_INDEX_INFO         IdxTable[PIC_IDX_MAX]; // old or new
-        INT16U                    MarkLink;              // 2
-        INT8U                     Linkused;              // 1
-
-}HD_VFS_RECORD_INFO;
+    INT32U                    ActRecordNbr;          // 4
+    INT32U                    RecHdTimeStamp;        // 4
+    INT16U                    ActChId;               // 2
+    INT16U                    ActVideoPid;           // 2
+    INT16U                    ActAudioPid;           // 2
+    INT16U                    ActAc3Pid;             // 2
+    INT8U                     NbrOfHeads;            // 1
+    HD_VFS_INDEX_INFO         IdxTable[PIC_IDX_MAX]; // old or new
+    INT16U                    MarkLink;              // 2
+    INT8U                     Linkused;              // 1
+} HD_VFS_RECORD_INFO;
 
 typedef enum{
-
-        FILE_DEL   = 0,
-        FILE_STORE,
-        FILE_CLOSE
-
-}HD_VFS_FILECLOSE;
+    FILE_DEL   = 0,
+    FILE_STORE,
+    FILE_CLOSE
+} HD_VFS_FILECLOSE;
 
 typedef struct{
-
-        BOOL                      Init;
-        PVFS_FILESYS              VfsSys;
-
-}HD_VFS_INIT;
+    BOOL                      Init;
+    PVFS_FILESYS              VfsSys;
+} HD_VFS_INIT;
 
 typedef enum{
-
-        MARK_NON      = 0x00,
-        MARK_POS      = 0x01,
-        MARK_LOOP     = 0x02,
-        MARK_JUMP     = 0x04,
-        MARK_FSTART   = 0x08,
-        MARK_FEND     = 0x10,
-        MARK_END      = 0x20,
-        MARK_LASTVIEW = 0x40
-
-}HD_VFS_MARK_TYPE;
+    MARK_NON      = 0x00,
+    MARK_POS      = 0x01,
+    MARK_LOOP     = 0x02,
+    MARK_JUMP     = 0x04,
+    MARK_FSTART   = 0x08,
+    MARK_FEND     = 0x10,
+    MARK_END      = 0x20,
+    MARK_LASTVIEW = 0x40
+} HD_VFS_MARK_TYPE;
 
 /* On-disk structure */
 #define VFS_MARKINFO_NAME_LEN     40
 typedef struct{
-
-        INT32U                    Idx;                                //! markIDX
-        INT32U                    type;                               //! type of this mark
-        //8
-        INT8U                     markname[VFS_MARKINFO_NAME_LEN];    //! name
-        //40
-        INT32U                    ActRecordNbr;                       //! nbr of this record
-        INT32U                    MarkCluster;                        //! vfs possition
-        INT32U                    MarkClusterByteOffset;
-        INT32U                    RecHdTimeStamp;                     //! recTime
-        //16
-
-}HD_VFS_MARK_INFO;
+    INT32U                    Idx;                                //! markIDX
+    INT32U                    type;                               //! type of this mark
+    //8
+    INT8U                     markname[VFS_MARKINFO_NAME_LEN];    //! name
+    //40
+    INT32U                    ActRecordNbr;                       //! nbr of this record
+    INT32U                    MarkCluster;                        //! vfs possition
+    INT32U                    MarkClusterByteOffset;
+    INT32U                    RecHdTimeStamp;                     //! recTime
+    //16
+} HD_VFS_MARK_INFO;
 
 #define VFS_MAX_MARK_BY_ENTRY         512
 #define VFS_MARK_LBA_BY_ENTRY         64
@@ -284,12 +260,10 @@ typedef struct{
 
 /* REC file header structure */
 typedef struct{
-
-        INT8U             ver[VFS_PC_VERSION_STR_LEN];      // version
-        INT8U             Epg[512];                         // EPG
-        HD_VFS_MARK_INFO  MarkInfo[VFS_MAX_MARK_BY_ENTRY];  // info system
-
-}HD_VFS_PC_HEADER;
+    INT8U             ver[VFS_PC_VERSION_STR_LEN];      // version
+    INT8U             Epg[512];                         // EPG
+    HD_VFS_MARK_INFO  MarkInfo[VFS_MAX_MARK_BY_ENTRY];  // info system
+} HD_VFS_PC_HEADER;
 
 
 #define VFS_SIG                0x14233241
@@ -322,44 +296,40 @@ typedef struct{
 
 /* On-disk structure, similar to FAT boot sector */
 typedef struct{
-
-       INT32U                   vfs_sig;                             //! VFS_Sig
-       INT8U                    FSInfo[VFS_INFOSTR_SIZE];            //! InfoString
-       INT32U                   VFS_Version;                         //! Version
-       INT32U                   SectorSize;                          //! LbaSectorsize in byte
-       INT32U                   ClusterSize;                         //! size of each cluster in lba
-       INT32U                   LbaSize;                             //! size of complete partition
-       INT32U                   RsvLbaSect;                          //! lba's free after VFS_Table
-       INT32U                   rootentrycounter;                    //! counter of entrys in root
-       INT32U                   rootentryLbaSect;                    //! root entry sector
-       //! freelist stuff
-       INT32U                   freebitmapsec;                       //! lba of bitmap
-       INT32U                   freelistsizeinbyte;                  //! size of this bitmap
-       INT32U                   freelistsizeinlba;                   //! size of this bitmap in lba
-       //! bitmap Info
-       INT32U                   firstfreebyteoffset;                 //! byteoffset of first free inode
-       INT8U                    Bitmaskoffirstfree;                  //! bitoffset
-       INT32U                   freecounter;                         //! counter of free inodes
-       INT32U                   numberoffilesinFS;                   //! conter of all files in partition
-       INT32U                   rootentryLBA;                        //! lba of root_dir
-       //! info system
-       INT32U                   infoentryLBA;
-       INT32U                   infoentrycounter;
-       INT32U                   infosize;
-       INT16U                   marksbyentry;
-
-}VFS_Table, MBR;
+    INT32U                   vfs_sig;                             //! VFS_Sig
+    INT8U                    FSInfo[VFS_INFOSTR_SIZE];            //! InfoString
+    INT32U                   VFS_Version;                         //! Version
+    INT32U                   SectorSize;                          //! LbaSectorsize in byte
+    INT32U                   ClusterSize;                         //! size of each cluster in lba
+    INT32U                   LbaSize;                             //! size of complete partition
+    INT32U                   RsvLbaSect;                          //! lba's free after VFS_Table
+    INT32U                   rootentrycounter;                    //! counter of entrys in root
+    INT32U                   rootentryLbaSect;                    //! root entry sector
+    //! freelist stuff
+    INT32U                   freebitmapsec;                       //! lba of bitmap
+    INT32U                   freelistsizeinbyte;                  //! size of this bitmap
+    INT32U                   freelistsizeinlba;                   //! size of this bitmap in lba
+    //! bitmap Info
+    INT32U                   firstfreebyteoffset;                 //! byteoffset of first free inode
+    INT8U                    Bitmaskoffirstfree;                  //! bitoffset
+    INT32U                   freecounter;                         //! counter of free inodes
+    INT32U                   numberoffilesinFS;                   //! conter of all files in partition
+    INT32U                   rootentryLBA;                        //! lba of root_dir
+    //! info system
+    INT32U                   infoentryLBA;
+    INT32U                   infoentrycounter;
+    INT32U                   infosize;
+    INT16U                   marksbyentry;
+} VFS_Table, MBR;
 
 typedef struct{
-
-       VFS_Table                V_FAT;
-       VFS_BITMAP_BUFF          FreeBitmap;
-       INT8U                   *pSectorBuffer;
-       INT32U                   ActSectorinBuffer;
-       INT32U                   ActLbaSector;
-       PVFS_FILESYS             VfsSys;
-
-}VFS_VARS;
+    VFS_Table                V_FAT;
+    VFS_BITMAP_BUFF          FreeBitmap;
+    INT8U                   *pSectorBuffer;
+    INT32U                   ActSectorinBuffer;
+    INT32U                   ActLbaSector;
+    PVFS_FILESYS             VfsSys;
+} VFS_VARS;
 
 
 #ifdef __cplusplus
@@ -389,8 +359,11 @@ FAT_ERROR VFS_SetVFSRecordInfo(HD_VFS_MARK_INFO *pInfo,INT8U flLinkenable);
 INT32U    VFS_PutNByte(HD_VFS_HANDLER **pfile,INT8U *pData,INT32U Size,FAT_ERROR *err);
 FAT_ERROR VFS_CloseFile(HD_VFS_HANDLER *pfile,HD_VFS_FILECLOSE store);
 INT32U    VFS_GetClusterSize();
+// Read EPG from device
 FAT_ERROR HD_VFS_GetEventInfobyFileIDX(INT16U FileIdx,INT8U *pData);
+// Store EPG to device
 FAT_ERROR HD_VFS_PutEventInfobyFileIDX(INT16U FileIdx,INT8U *pData);
+// Remove CRTL-E (0x05) characters from text strings
 void      stripCtrlE(char *entryName);
 #ifdef __cplusplus
 }

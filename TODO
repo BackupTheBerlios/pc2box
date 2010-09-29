@@ -15,8 +15,4 @@ Medium priority:
 * All: Prevent multiple file list updates during startup
 
 Low priority:
-* All: pc2box does not store EPG from file
-* All: pc2box does not get EPG from Receiver when downloading to REC file.
-       Need to get information where to find EPG, potentially from LaSat
-       or via reverse engineering (SMART MX-84: found at VFS_table + 0x1FA00,
-       length 0x200 per Entry, character 0x05 used as delimiter)
+* All: pc2box does not store EPG from REC file to device
