@@ -41,6 +41,7 @@ Disk_Thread::Disk_Thread(THREAD_Params *pParams)
     this->pFileDownload  = pParams->pFileDownload;
     this->pDownloadBar   = pParams->pDownloadBar;
     this->pPc2Box        = pParams->pPc2Box;
+    this->pREC2TS        = pParams->pREC2TS;
 }
 
 int Disk_Thread::Poll_vfs(int dev, bool *ping)
@@ -241,8 +242,10 @@ void Disk_Thread::transferCancel(void)
         PCFile =0;
     }
 
-    if(ActFile)       ActFile = &DummyActFile;
-    if(ActPc2BoxFile) ActPc2BoxFile = &DummyActFile;
+    if(ActFile)       
+        ActFile = &DummyActFile;
+    if(ActPc2BoxFile) 
+        ActPc2BoxFile = &DummyActFile;
 
     lock->unlock();
 }
@@ -307,7 +310,8 @@ U32 Disk_Thread::CreateVFSEntry(char* name)
     return (U32)err;
 }
 
-void Disk_Thread::OpenFilesForUpload(void){
+void Disk_Thread::OpenFilesForUpload(void)
+{
     printf(" try to open %s\n",(char*)ActPc2BoxFile->EntryName);
     PCFile = new QFile((char*)ActPc2BoxFile->EntryName);
     if(!PCFile->open(QIODevice::ReadOnly)){
@@ -337,6 +341,83 @@ void Disk_Thread::OpenFilesForUpload(void){
     }
 }
 
+void Disk_Thread::OpenFilesForDownload(void)
+{
+    char Str[VFS_INODEN_NAME_LEN+5]={0};
+
+    VFS_OpenFile(&VFSHandler, ActFile->EntryName ,O_RDWR);
+    if(pFileDownload->type == TS_DOWNLOAD){
+        snprintf(Str,VFS_INODEN_NAME_LEN+5,"%s.mpg",ActFile->EntryName);
+    }else if(pFileDownload->type == REC_DOWNLOAD){
+        snprintf(Str,VFS_INODEN_NAME_LEN+5,"%s.rec",ActFile->EntryName);
+    }
+    stripCtrlE((char *)Str);
+    printf(" try to open %s\n",Str);
+    prepareFileName(Str);
+    PCFile = new QFile(Str);
+    if(!PCFile->open(QIODevice::ReadWrite)){
+        delete PCFile;
+        ActFile = 0;
+        printf(" can't open file\n");
+    } else if (pFileDownload->type == REC_DOWNLOAD) {
+        // Write REC file header
+        char   Epg[512] = {0};
+        HD_VFS_PC_HEADER* pPC_Header = (HD_VFS_PC_HEADER*) malloc(sizeof(HD_VFS_PC_HEADER));
+        memset(pPC_Header->ver,0x00,sizeof(pPC_Header->ver));
+        memset(pPC_Header->Epg,0x00,sizeof(pPC_Header->Epg));
+        HD_VFS_GetEventInfobyFileIDX(VFSHandler->EntryIDX, (INT8U *)Epg);
+        memcpy(pPC_Header->Epg,Epg,512);
+        memset(pPC_Header->MarkInfo,0x00,sizeof(pPC_Header->MarkInfo));
+        snprintf((char*)pPC_Header->ver,VFS_PC_VERSION_STR_LEN,"%s",VFS_PC_ACTVERSION);
+        printf(" -> %s \n",pPC_Header->ver);
+        PCFile->write((const char*)pPC_Header,sizeof(HD_VFS_PC_HEADER));
+        free(pPC_Header);
+    }
+}
+
+void Disk_Thread::OpenFilesForTS2REC()
+{
+    QString fileName = pREC2TS->fileList.at(pREC2TS->index);
+    QString outFileName = fileName;
+    char *buffer;
+    size_t numread;
+    
+    outFileName.replace(".rec", ".ts", Qt::CaseInsensitive);
+    printf("Converting <%s> to <%s>\n", fileName.toStdString().c_str(), outFileName.toStdString().c_str());
+    PCFile = new QFile(fileName);
+    REC2TSDest = new QFile(outFileName);
+    
+    if (!PCFile->open(QIODevice::ReadOnly)) {
+        printf("Opening <%s> failed\n", fileName.toStdString().c_str());
+        delete PCFile;
+        delete REC2TSDest;
+        return;
+    }
+    
+    buffer = (char *)malloc(sizeof(char) * sizeof(HD_VFS_PC_HEADER));
+    printf("Skipping header (%lu bytes)...\n", (unsigned long int)(sizeof(char) * sizeof(HD_VFS_PC_HEADER)));
+    numread = PCFile->read(buffer, sizeof(char) * sizeof(HD_VFS_PC_HEADER));
+
+    if ((numread < sizeof(HD_VFS_PC_HEADER)) || strncmp(buffer, VFS_PC_ACTVERSION, sizeof(VFS_PC_ACTVERSION))) {
+        PCFile->close();
+        delete PCFile;
+        delete REC2TSDest;
+        printf("<%s> does not have a record file header\n", fileName.toStdString().c_str());
+        return;
+    }
+    
+    free(buffer);
+
+    if (!REC2TSDest->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        PCFile->close();
+        delete PCFile;
+        delete REC2TSDest;
+        printf("Opening <%s> failed", outFileName.toStdString().c_str());
+        return;
+    }
+    pREC2TS->index++;
+}
+
 void Disk_Thread::StartUpload(void)
 {
     lock->lock();                                             // called from MyFormThread
@@ -355,47 +436,30 @@ void Disk_Thread::StartUpload(void)
 
 void Disk_Thread::StartDownload(void)
 {
-    char Str[VFS_INODEN_NAME_LEN+5]={0};
-
     lock->lock();
 
     printf(" ---------- start download ---------------\n");   // called from MyFormThread
     ActFile = pFileDownload->FileList;
     if(ActFile){
-        VFS_OpenFile(&VFSHandler, ActFile->EntryName ,O_RDWR);
-        if(pFileDownload->type == 2){
-            snprintf(Str,VFS_INODEN_NAME_LEN+5,"%s.mpg",ActFile->EntryName);
-        }else if(pFileDownload->type == 1){
-            snprintf(Str,VFS_INODEN_NAME_LEN+5,"%s.rec",ActFile->EntryName);
-        }
-        stripCtrlE((char *)Str);
-        printf(" try to open %s\n",Str);
-        prepareFileName(Str);
-        PCFile = new QFile(Str);
-        if(!PCFile->open(QIODevice::ReadWrite)){
-            delete PCFile;
-            ActFile = 0;
-            printf(" can't open file\n");
-        }else{
-            if(pFileDownload->type == 1){
-                char   Epg[512] = {0};
-                HD_VFS_PC_HEADER* pPC_Header = (HD_VFS_PC_HEADER*) malloc(sizeof(HD_VFS_PC_HEADER));
-                memset(pPC_Header->ver,0x00,sizeof(pPC_Header->ver));
-                memset(pPC_Header->Epg,0x00,sizeof(pPC_Header->Epg));
-                HD_VFS_GetEventInfobyFileIDX(VFSHandler->EntryIDX, (INT8U *)Epg);
-                memcpy(pPC_Header->Epg,Epg,512);
-                memset(pPC_Header->MarkInfo,0x00,sizeof(pPC_Header->MarkInfo));
-                snprintf((char*)pPC_Header->ver,VFS_PC_VERSION_STR_LEN,"%s",VFS_PC_ACTVERSION);
-                printf(" -> %s \n",pPC_Header->ver);
-                PCFile->write((const char*)pPC_Header,sizeof(HD_VFS_PC_HEADER));
-                free(pPC_Header);
-            }
-        }
+        OpenFilesForDownload();
     }else{
         printf(" nothing available\n");
     }
     printf(" ---------- END   download ---------------\n");
 
+    lock->unlock();
+}
+
+void Disk_Thread::StartREC2TS(void)
+{
+    lock->lock();                                             // called from MyFormThread
+    printf(" ---------- start REC->TS ---------------\n");
+    if (!pREC2TS->fileList.isEmpty()){
+        OpenFilesForTS2REC();
+    }else{
+        printf(" nothing available\n");
+    }
+    printf(" ---------- END   REC->TS -----------------\n");
     lock->unlock();
 }
 
@@ -516,20 +580,20 @@ U32 Disk_Thread::FileDownloadProcessing(void)
             FAT_ERROR  err;
             size  = VFS_GetNByte(&VFSHandler,RecordBuffer,VFS_REC_SIZE,&err);
             if(size != VFS_REC_SIZE){
-
                 printf("EOF\n");
                 VFS_CloseFile(VFSHandler,FILE_CLOSE);
+                // The next line terminates the entire single file transaction
                 VFSHandler = 0;
                 PCFile->close();
                 delete PCFile;
-
             }else{
+                // Copy a single record
                 HD_VFS_RECORD_INFO *pInfo = (HD_VFS_RECORD_INFO *)&RecordBuffer[VFS_TSPACK_SIZE];
                 qDebug("Rec -> %d t-> %d ",pInfo->ActRecordNbr,pInfo->RecHdTimeStamp);
-                if(pFileDownload->type == 2){
+                if(pFileDownload->type == TS_DOWNLOAD){
                     // mpeg PART
                     PCFile->write((const char*)RecordBuffer,VFS_TSPACK_SIZE);
-                }else if(pFileDownload->type == 1){
+                }else if(pFileDownload->type == REC_DOWNLOAD){
                     // rec PART
                     PCFile->write((const char*)RecordBuffer,VFS_REC_SIZE);
                 }
@@ -547,37 +611,10 @@ U32 Disk_Thread::FileDownloadProcessing(void)
             }
         }else{
             ActFile = ActFile->next;
-            if(ActFile){ // open the next file
-                VFS_OpenFile(&VFSHandler, ActFile->EntryName ,O_RDWR);
-                // Using MyForm::TextBrowserStr for filename (is this intended???)
-                if(pFileDownload->type == 2){
-                    sprintf(this->strOutput,"%s.mpg",ActFile->EntryName);
-                }else if(pFileDownload->type == 1){
-                    sprintf(this->strOutput,"%s.rec",ActFile->EntryName);
-                }
-                stripCtrlE((char *)this->strOutput);
-                printf(" try to open %s\n",this->strOutput);
-                prepareFileName(this->strOutput);
-                PCFile = new QFile(this->strOutput);
-                if(!PCFile->open(QIODevice::ReadWrite)){
-                    delete PCFile;
-                    ActFile = 0;
-                    printf(" can't open file\n");
-                }else{
-                    if(pFileDownload->type == 1){
-                        char   Epg[512] = {0};
-                        HD_VFS_PC_HEADER* pPC_Header = (HD_VFS_PC_HEADER*) malloc(sizeof(HD_VFS_PC_HEADER));
-                        memset(pPC_Header->ver,0x00,sizeof(pPC_Header->ver));
-                        memset(pPC_Header->Epg,0x00,sizeof(pPC_Header->Epg));
-                        HD_VFS_GetEventInfobyFileIDX(VFSHandler->EntryIDX, (INT8U *)Epg);
-                        memcpy(pPC_Header->Epg,Epg,512);
-                        memset(pPC_Header->MarkInfo,0x00,sizeof(pPC_Header->MarkInfo));
-                        snprintf((char*)pPC_Header->ver,VFS_PC_VERSION_STR_LEN,"%s",VFS_PC_ACTVERSION);
-                        printf(" -> %s \n",pPC_Header->ver);
-                        PCFile->write((const char*)pPC_Header,sizeof(HD_VFS_PC_HEADER));
-                        free(pPC_Header);
-                    }
-                }
+            
+            if (ActFile) { 
+                // open the next file
+                OpenFilesForDownload();
             }else{
                 // del downloadlist
                 Filesfordownload *ptr = pFileDownload->FileList,*tmp;
@@ -599,6 +636,51 @@ U32 Disk_Thread::FileDownloadProcessing(void)
     return 100;
 }
 
+U32 Disk_Thread::REC2TSProcessing(void)
+{
+    size_t numread, numwritten;
+    char *buffer;
+    
+    lock->lock();
+    if (pREC2TS->index > 0) {
+        DownloadBarInfo Bar;
+        memset(&Bar,0x00,sizeof(DownloadBarInfo));
+        snprintf((char*)Bar.InfoStr,LOAD_BAR_INFOST_LEN_MAX,"%s",(char*)pREC2TS->fileList.at(pREC2TS->index-1).toStdString().c_str());
+        Bar.bar  = PCFile->pos()*100 / PCFile->size();
+        updateDownloadbar(&Bar);
+
+        buffer = (char *)malloc(sizeof(char) * VFS_REC_SIZE);
+        numwritten = VFS_TSPACK_SIZE;
+        printf("Copying");
+
+        numread = PCFile->read(buffer, sizeof(char) * VFS_REC_SIZE);
+        if( numread > VFS_TSPACK_SIZE ) 
+            numread = VFS_TSPACK_SIZE; // truncate to VFS_TSPACK_SIZE
+        
+        if (numread == VFS_TSPACK_SIZE) {
+            numwritten = REC2TSDest->write(buffer, sizeof(char) * numread);
+        } else {
+            // file end
+            free(buffer);
+            PCFile->close();
+            REC2TSDest->close();
+            delete PCFile;
+            delete REC2TSDest;
+            if (pREC2TS->index == pREC2TS->fileList.size()) {
+                pREC2TS->index = 0;
+                DownloadBarInfo Bar;
+                memset(&Bar,0x00,sizeof(DownloadBarInfo));
+                Bar.bar = 0xffff0000;
+                updateDownloadbar(&Bar);
+            } else
+                OpenFilesForTS2REC();
+        }
+    }
+    lock->unlock();
+    return 0;
+}
+
+
 void Disk_Thread::run(void)
 {
     fpPolling   fpDiskPoll = &Disk_Thread::init_vfs;
@@ -614,7 +696,7 @@ void Disk_Thread::run(void)
     ActFile       = 0;
     ActPc2BoxFile = 0;
     VFSHandler    = 0;
-
+    
 #if !defined(_WIN32) && !defined(_WIN64)
     // Linux only: single poll, no re-open as files/devices are not locked
     count = (this->*fpDiskPoll)(countPrev,&pingpong);
@@ -645,9 +727,12 @@ void Disk_Thread::run(void)
         //--------------------------
         if(ActFile){
             timeout = FileDownloadProcessing();
-        }else if(ActPc2BoxFile){
+        } else if (ActPc2BoxFile) {
             timeout = FileUploadProcessing();
-        }else timeout = 100;
+        } else if (pREC2TS->index > 0) {
+            timeout = REC2TSProcessing();
+        } else
+            timeout = 100;
         msleep(timeout);
 
     }

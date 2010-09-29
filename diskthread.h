@@ -26,6 +26,7 @@
 #include <qthread.h>
 #include <QMutexLocker>
 #include <QFile>
+#include <QStringList>
 #include "types.h"
 #include "vfs.h"
 
@@ -41,12 +42,24 @@ typedef struct DownloadFiles {
     struct DownloadFiles *next;
 } Filesfordownload;
 
+typedef enum {
+    REC_DOWNLOAD = 1,
+    TS_DOWNLOAD = 2,
+    PC2BOX = 3,
+} XFER_TYPE;
+
 typedef struct {
     U32 fileCount;
-    U32 type;
+    XFER_TYPE type;
     Filesfordownload *FileList;
 } FileDownload;
 
+typedef struct {
+    int index;
+    QStringList fileList;
+} FileREC2TS;
+
+    
 typedef struct {
     std::string threadName;
     char *strOutput;
@@ -55,6 +68,7 @@ typedef struct {
     U32 *fileCounter;
     FileDownload *pFileDownload;
     FileDownload *pPc2Box;
+    FileREC2TS   *pREC2TS;
     DownloadBarInfo *pDownloadBar;
 } THREAD_Params;
 
@@ -63,49 +77,56 @@ class Disk_Thread : public QThread{
 
 public:
     Disk_Thread(THREAD_Params *pParams=0);
-    virtual void    run();
+    virtual void run();
 
-    char             *strOutput;
-    HD_VFS_HANDLER   *pActVfsHandler;
-    QMutex           *lock;
-    U32              *pFileCounter;
-    FileDownload     *pFileDownload;
-    FileDownload     *pPc2Box;
-    DownloadBarInfo  *pDownloadBar;
-
-    Filesfordownload *ActFile;
-    Filesfordownload *ActPc2BoxFile;
-    HD_VFS_HANDLER   *VFSHandler;
-    QFile            *PCFile;
-    HD_VFS_MARK_INFO MarkInfo;
-    U8               RecordBuffer[VFS_REC_SIZE+500];
-    U32              FileDownloadProcessing(void);
-    U32              FileUploadProcessing(void);
-    void             prepareFileName(char *Str);
-    U32              CreateVFSEntry(char* name);
-
-    int              init_vfs(int dev, bool *ping);
-    int              Poll_vfs(int dev, bool *ping);
-
- signals:
+signals:
     void      beep();
     void      FileListbeep();
     void      DiskRemovebeep();
     void      UpdateBarbeep();
 
-    public slots:
+public slots:
     void      StartDownload();
     void      StartUpload();
+    void      StartREC2TS();
     void      transferCancel();
 
  private:
-    std::string     name;
-    VFS_FILESYS     FileSys;
-    HD_VFS_INIT     VfsInit;
+    std::string      name;
+    VFS_FILESYS      FileSys;
+    HD_VFS_INIT      VfsInit;
+    char             *strOutput;
+    HD_VFS_HANDLER   *pActVfsHandler;
+    QMutex           *lock;
+    U32              *pFileCounter;
+    DownloadBarInfo  *pDownloadBar;
+
+    HD_VFS_HANDLER   *VFSHandler;
+    QFile            *PCFile;
+    QFile            *REC2TSDest;
+    HD_VFS_MARK_INFO MarkInfo;
+    U8               RecordBuffer[VFS_REC_SIZE+500];
+    U32              FileDownloadProcessing(void);
+    U32              FileUploadProcessing(void);
+    U32              REC2TSProcessing(void);
+    void             prepareFileName(char *Str);
+    U32              CreateVFSEntry(char* name);
+
+    FileDownload     *pFileDownload;
+    FileDownload     *pPc2Box;
+    FileREC2TS       *pREC2TS;
+    Filesfordownload *ActFile;
+    Filesfordownload *ActPc2BoxFile;
+    QString          ActREC2TSFile;
+
+    int  init_vfs(int dev, bool *ping);
+    int  Poll_vfs(int dev, bool *ping);
     void printTextBrowser(const char *str);
     void AddNewVFSHandler(HD_VFS_HANDLER *pVfsHandler);
     void updateDownloadbar(DownloadBarInfo *pInfo);
     void OpenFilesForUpload(void);
+    void OpenFilesForDownload(void);
+    void OpenFilesForTS2REC(void);
     void UpdateFileListWidget(void);
 };
 

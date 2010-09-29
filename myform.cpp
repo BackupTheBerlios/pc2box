@@ -206,21 +206,21 @@ MyForm::MyForm()
 
     gridLayout->addWidget(textBrowser, 0, 1, 5, 2);
 
-    pushButton_2 = new QPushButton(this);
-    pushButton_2->setObjectName(QString::fromUtf8("pushButton_2"));
+    pushButtonPc2box = new QPushButton(this);
+    pushButtonPc2box->setObjectName(QString::fromUtf8("pushButtonPc2box"));
 
-    gridLayout->addWidget(pushButton_2, 2, 0, 1, 1);
+    gridLayout->addWidget(pushButtonPc2box, 2, 0, 1, 1);
 
-    pushButton_4 = new QPushButton(this);
-    pushButton_4->setObjectName(QString::fromUtf8("pushButton_4"));
+    pushButtonLoadTS = new QPushButton(this);
+    pushButtonLoadTS->setObjectName(QString::fromUtf8("pushButtonLoadTS"));
 
-    gridLayout->addWidget(pushButton_4, 1, 0, 1, 1);
+    gridLayout->addWidget(pushButtonLoadTS, 1, 0, 1, 1);
 
-    pushButton_3 = new QPushButton(this);
-    pushButton_3->setObjectName(QString::fromUtf8("pushButton_3"));
-    pushButton_3->setCursor(QCursor(static_cast<Qt::CursorShape>(13)));
+    pushButtonLoadREC = new QPushButton(this);
+    pushButtonLoadREC->setObjectName(QString::fromUtf8("pushButtonLoadREC"));
+    pushButtonLoadREC->setCursor(QCursor(static_cast<Qt::CursorShape>(13)));
 
-    gridLayout->addWidget(pushButton_3, 0, 0, 1, 1);
+    gridLayout->addWidget(pushButtonLoadREC, 0, 0, 1, 1);
 
     treeWidget = new QTreeWidget(this);
     treeWidget->setObjectName(QString::fromUtf8("treeWidget"));
@@ -234,38 +234,38 @@ MyForm::MyForm()
 
     gridLayout->addItem(spacerItem1, 6, 0, 1, 2);
 
-    pushButton = new QPushButton(this);
-    pushButton->setObjectName(QString::fromUtf8("pushButton"));
-    pushButton->setCursor(QCursor(static_cast<Qt::CursorShape>(13)));
+    pushButtonQuit = new QPushButton(this);
+    pushButtonQuit->setObjectName(QString::fromUtf8("pushButton"));
+    pushButtonQuit->setCursor(QCursor(static_cast<Qt::CursorShape>(13)));
 
-    gridLayout->addWidget(pushButton, 6, 2, 1, 1);
+    gridLayout->addWidget(pushButtonQuit, 6, 2, 1, 1);
 
-    pushButton_5 = new QPushButton(this);
-    pushButton_5->setObjectName(QString::fromUtf8("pushButton_5"));
+    pushButtonInfo = new QPushButton(this);
+    pushButtonInfo->setObjectName(QString::fromUtf8("pushButtonInfo"));
 
-    gridLayout->addWidget(pushButton_5, 4, 0, 1, 1);
+    gridLayout->addWidget(pushButtonInfo, 4, 0, 1, 1);
 
-    pushButton_6 = new QPushButton(this);
-    pushButton_6->setObjectName(QString::fromUtf8("pushButton_6"));
+    pushButtonREC2TS = new QPushButton(this);
+    pushButtonREC2TS->setObjectName(QString::fromUtf8("pushButtonREC2TS"));
 
-    gridLayout->addWidget(pushButton_6, 3, 0, 1, 1);
+    gridLayout->addWidget(pushButtonREC2TS, 3, 0, 1, 1);
 
     QWidget::setTabOrder(treeWidget  , textBrowser);
-    QWidget::setTabOrder(textBrowser , pushButton_3);
-    QWidget::setTabOrder(pushButton_3, pushButton);
-    QWidget::setTabOrder(pushButton  , pushButton_4);
-    QWidget::setTabOrder(pushButton_4, pushButton_2);
-    QWidget::setTabOrder(pushButton_2, pushButton_6);
-    QWidget::setTabOrder(pushButton_6, pushButton_5);
+    QWidget::setTabOrder(textBrowser , pushButtonLoadREC);
+    QWidget::setTabOrder(pushButtonLoadREC, pushButtonQuit);
+    QWidget::setTabOrder(pushButtonQuit  , pushButtonLoadTS);
+    QWidget::setTabOrder(pushButtonLoadTS, pushButtonPc2box);
+    QWidget::setTabOrder(pushButtonPc2box, pushButtonREC2TS);
+    QWidget::setTabOrder(pushButtonREC2TS, pushButtonInfo);
 
     resize(this);
 
-    QObject::connect(pushButton   , SIGNAL(clicked(bool)), this, SLOT(close()));
-    QObject::connect(pushButton_5 , SIGNAL(clicked(bool)), this, SLOT(ShowApplicationInfo()));
-    QObject::connect(pushButton_2 , SIGNAL(clicked(bool)), this, SLOT(pc2box()));
-    QObject::connect(pushButton_3 , SIGNAL(clicked(bool)), this, SLOT(LoadRecFiles()));
-    QObject::connect(pushButton_4 , SIGNAL(clicked(bool)), this, SLOT(LoadTSFiles()));
-    QObject::connect(pushButton_6 , SIGNAL(clicked(bool)), this, SLOT(Rec2TS()));
+    QObject::connect(pushButtonQuit   , SIGNAL(clicked(bool)), this, SLOT(close()));
+    QObject::connect(pushButtonInfo , SIGNAL(clicked(bool)), this, SLOT(ShowApplicationInfo()));
+    QObject::connect(pushButtonPc2box , SIGNAL(clicked(bool)), this, SLOT(pc2box()));
+    QObject::connect(pushButtonLoadREC , SIGNAL(clicked(bool)), this, SLOT(LoadRecFiles()));
+    QObject::connect(pushButtonLoadTS , SIGNAL(clicked(bool)), this, SLOT(LoadTSFiles()));
+    QObject::connect(pushButtonREC2TS , SIGNAL(clicked(bool)), this, SLOT(Rec2TS()));
 
     retranslateUi(this);
 
@@ -283,6 +283,7 @@ MyForm::MyForm()
     ThreadParams.pFileDownload  = &this->FilestoDownload;
     ThreadParams.pDownloadBar   = &this->DownloadBar;
     ThreadParams.pPc2Box        = &this->Filespc2box;
+    ThreadParams.pREC2TS        = &this->FilesREC2TS;
 
     pd = new QProgressDialog(" nothing ", "Cancel", 0 ,100, this );
     pd->setAutoReset(0);
@@ -296,6 +297,7 @@ MyForm::MyForm()
     QObject::connect( a, SIGNAL( UpdateBarbeep() ), this, SLOT( DisplayLoadBar() ) );       // clear  FileListWidget
     QObject::connect( this, SIGNAL( StartDownloadbeep() ), a, SLOT( StartDownload() ) );    // start  download
     QObject::connect( this, SIGNAL( Startpc2boxbeep() )  , a, SLOT( StartUpload() ) );      // start upload/pc2box
+    QObject::connect( this, SIGNAL( StartREC2TSbeep() )  , a, SLOT( StartREC2TS() ) );      // start REC->TS
 
     QObject::connect(pd, SIGNAL(canceled()), a, SLOT(transferCancel()));
     a->start();
@@ -410,15 +412,18 @@ void MyForm::LoadRecFiles(){
     U32 is = countSelectedFiles();
     printf(" load files as REC\n");
     printf(" %d files selected\n",(int)is);
-    if(!is)return;
+    if(!is)
+        return;
 
     //lock.lock();
 
     FilestoDownload.fileCount = is;
-    FilestoDownload.type      = 1;
-    if(!FilestoDownload.FileList){
+    FilestoDownload.type      = REC_DOWNLOAD;
+    if(!FilestoDownload.FileList) {
         AddNewFileForDownload();
-    }else{printf(" download in progress\n");}
+    } else {
+        printf(" download in progress\n");
+    }
     //lock.unlock();
 }
 
@@ -426,15 +431,18 @@ void MyForm::LoadTSFiles(){
     U32 is = countSelectedFiles();
     printf(" load files as TS\n");
     printf(" %d files selected\n",(int)is);
-    if(!is)return;
+    if(!is)
+        return;
 
     //lock.lock();
 
     FilestoDownload.fileCount = is;
-    FilestoDownload.type      = 2;
+    FilestoDownload.type      = TS_DOWNLOAD;
     if(!FilestoDownload.FileList){
         AddNewFileForDownload();
-    }else{printf(" download in progress\n");}
+    } else {
+        printf(" download in progress\n");
+    }
 
     //lock.unlock();
 }
@@ -449,17 +457,17 @@ void MyForm::resize(QWidget *Form)
 void MyForm::retranslateUi(QWidget *Form)
 {
     Form->setWindowTitle(QApplication::translate("Form", "pc2Box", 0, QApplication::UnicodeUTF8));
-    pushButton_2->setText(QApplication::translate("Form", "pc2box", 0, QApplication::UnicodeUTF8));
-    pushButton_4->setText(QApplication::translate("Form", "TS laden", 0, QApplication::UnicodeUTF8));
-    pushButton_3->setToolTip(QString());
-    pushButton_3->setText(QApplication::translate("Form", "Rec laden", 0, QApplication::UnicodeUTF8));
+    pushButtonPc2box->setText(QApplication::translate("Form", "pc2box", 0, QApplication::UnicodeUTF8));
+    pushButtonLoadTS->setText(QApplication::translate("Form", "TS laden", 0, QApplication::UnicodeUTF8));
+    pushButtonLoadREC->setToolTip(QString());
+    pushButtonLoadREC->setText(QApplication::translate("Form", "Rec laden", 0, QApplication::UnicodeUTF8));
     treeWidget->headerItem()->setText(0, QApplication::translate("Form", "Nbr", 0, QApplication::UnicodeUTF8));
     treeWidget->headerItem()->setText(1, QApplication::translate("Form", "Name", 0, QApplication::UnicodeUTF8));
     treeWidget->headerItem()->setText(2, QApplication::translate("Form", "Gr\303\266sse", 0, QApplication::UnicodeUTF8));
     treeWidget->headerItem()->setText(3, QApplication::translate("Form", "Zeit", 0, QApplication::UnicodeUTF8));
-    pushButton->setText(QApplication::translate("Form", "Ende", 0, QApplication::UnicodeUTF8));
-    pushButton_5->setText(QApplication::translate("Form", "Info", 0, QApplication::UnicodeUTF8));
-    pushButton_6->setText(QApplication::translate("Form", "REC->TS", 0, QApplication::UnicodeUTF8));
+    pushButtonQuit->setText(QApplication::translate("Form", "Quit", 0, QApplication::UnicodeUTF8));
+    pushButtonInfo->setText(QApplication::translate("Form", "Info", 0, QApplication::UnicodeUTF8));
+    pushButtonREC2TS->setText(QApplication::translate("Form", "REC->TS", 0, QApplication::UnicodeUTF8));
     Q_UNUSED(Form);
 }
 
@@ -533,7 +541,8 @@ U32 MyForm::countSelectedFiles(void)
     if(!is){
         QMessageBox::warning( this, tr(" ERROR "),tr(" nothing selected? "));
         return 0;
-    }else return is;
+    } else
+        return is;
 }
 
 void MyForm::pc2box(){
@@ -551,7 +560,7 @@ void MyForm::pc2box(){
     QFileInfoList list = dir.entryInfoList();
 
     Filespc2box.fileCount = 0;
-    Filespc2box.type      = 3;
+    Filespc2box.type      = PC2BOX;
     Filespc2box.FileList  = 0;
 
     for(int i = 0; i < list.size(); ++i) {
@@ -586,7 +595,8 @@ void MyForm::pc2box(){
                 ix = strlen(str);
                 if(ix<(VFS_INODEN_NAME_LEN+4)){
                     char *Str = (char*)&File->EntryName[0];
-                    while(ix--)*Str++ = *str++;
+                    while (ix--)
+                        *Str++ = *str++;
                 }else{
                     // File name too long to fit in EntryName[]
                     // Results in file not being read in FileUploadProcessing
@@ -612,64 +622,19 @@ void MyForm::pc2box(){
 
 void MyForm::Rec2TS()
 {
-    QFile infile, outfile;
-    size_t numread, numwritten;
-    char *buffer;
-    QString fileName = QFileDialog::getOpenFileName(this,
-                                                    tr("Open REC file"), ".", 
-                                                    tr("Rec files (*.rec *.REC)"));
-    QString outFileName = fileName;
-    QMessageBox msgBox;
-    
-    outFileName.replace(".rec", ".ts", Qt::CaseInsensitive);
-    printf("Converting <%s> to <%s>\n", fileName.toStdString().c_str(), outFileName.toStdString().c_str());
-    infile.setFileName(fileName);
-    outfile.setFileName(outFileName);
-    
-    if (!infile.open(QIODevice::ReadOnly)) {
-        msgBox.setIcon(QMessageBox::Critical);
-        msgBox.setText("Opening " + fileName + " failed");
-        msgBox.exec();
-        return;
-    }
-    
-    buffer = (char *)malloc(sizeof(char) * sizeof(HD_VFS_PC_HEADER));
-    printf("Skipping header (%lu bytes)...\n", (unsigned long int)(sizeof(char) * sizeof(HD_VFS_PC_HEADER)));
-    numread = infile.read(buffer, sizeof(char) * sizeof(HD_VFS_PC_HEADER));
+    QStringList fileNames = QFileDialog::getOpenFileNames(this,
+                                                          tr("Open REC file"), 
+                                                          ".", 
+                                                          tr("Rec files (*.rec *.REC)"));
 
-    if ((numread < sizeof(HD_VFS_PC_HEADER)) || strncmp(buffer, VFS_PC_ACTVERSION, sizeof(VFS_PC_ACTVERSION))) {
-        infile.close();
-        msgBox.setIcon(QMessageBox::Critical);
-        msgBox.setText(fileName + " does not have a record file header");
-        msgBox.exec();
-        return;
-    }
-    
-    free(buffer);
+    FilesREC2TS.index = 0;
+    FilesREC2TS.fileList.clear();
 
-    if (!outfile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        infile.close();
-        msgBox.setIcon(QMessageBox::Critical);
-        msgBox.setText("Opening " + outFileName + " failed");
-        msgBox.exec();
+    if(fileNames.isEmpty()) {
+        QMessageBox::warning( this, tr(" ERROR "),tr(" No suitable *.rec file found "));
         return;
+    } else {
+        FilesREC2TS.fileList = fileNames;
+        emit StartREC2TSbeep();
     }
-
-    buffer = (char *)malloc(sizeof(char) * VFS_REC_SIZE);
-    numwritten = VFS_TSPACK_SIZE;
-    printf("Copying");
-    while( numwritten == VFS_TSPACK_SIZE ) {
-        numread = infile.read(buffer, sizeof(char) * VFS_REC_SIZE);
-        if( numread > VFS_TSPACK_SIZE ) 
-            numread = VFS_TSPACK_SIZE; // truncate to VFS_TSPACK_SIZE
-        numwritten = outfile.write(buffer, sizeof(char) * numread);
-        printf(".");
-    }
-    printf("\n");
-    free(buffer);
-    outfile.close();
-    infile.close();
-    msgBox.setIcon(QMessageBox::Information);
-    msgBox.setText(fileName + " successfully converted to " + outFileName);
-    msgBox.exec();
 }

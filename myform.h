@@ -23,8 +23,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-#ifndef UI_FORM1_H
-#define UI_FORM1_H
+#ifndef MYFORM_H
+#define MYFORM_H
 
 #include <QtCore/QVariant>
 #include <QtGui/QAction>
@@ -59,17 +59,35 @@ public:
     MyForm();
     ~MyForm();
 
+signals:
+    void StartDownloadbeep();
+    void Startpc2boxbeep();
+    void StartREC2TSbeep();
+
+public slots:
+    virtual void ShowApplicationInfo();
+    virtual void LoadRecFiles();
+    virtual void LoadTSFiles();
+    virtual void pc2box();
+    virtual void Rec2TS();
+
+    void         gotBeep();
+    void         updateFileListWidget();
+    void         clearFileListWidget();
+    void         DisplayLoadBar();
+
+private:
     QGridLayout     *gridLayout;
     QSpacerItem     *spacerItem;
     QTextBrowser    *textBrowser;
-    QPushButton     *pushButton_2;
-    QPushButton     *pushButton_4;
-    QPushButton     *pushButton_3;
+    QPushButton     *pushButtonLoadTS;
+    QPushButton     *pushButtonLoadREC;
+    QPushButton     *pushButtonPc2box;
+    QPushButton     *pushButtonREC2TS;
+    QPushButton     *pushButtonInfo;
+    QPushButton     *pushButtonQuit;
     QTreeWidget     *treeWidget;
     QSpacerItem     *spacerItem1;
-    QPushButton     *pushButton;
-    QPushButton     *pushButton_5;
-    QPushButton     *pushButton_6;
     QProgressDialog *pd;
     Disk_Thread     *a;
 
@@ -80,28 +98,12 @@ public:
     FileDownload    FilestoDownload;
     DownloadBarInfo DownloadBar;
     FileDownload    Filespc2box;
+    FileREC2TS      FilesREC2TS;
 
-signals:
-    void StartDownloadbeep();
-    void Startpc2boxbeep();
-
-public slots:
-    virtual void ShowApplicationInfo();
-    virtual void LoadRecFiles();
-    virtual void LoadTSFiles();
-    virtual void pc2box();
-    virtual void Rec2TS();
-    void         gotBeep();
-    void         updateFileListWidget();
-    void         clearFileListWidget();
-    void         DisplayLoadBar();
-
-private:
     U32 countSelectedFiles(void);
     void resize(QWidget *Form);
     void retranslateUi(QWidget *Form);
     void AddNewFileForDownload(void);
 };
-
 
 #endif
