@@ -331,6 +331,15 @@ typedef struct{
     PVFS_FILESYS             VfsSys;
 } VFS_VARS;
 
+/* The following is the "magic" driver string required for raw
+   disk access on Windows. It is of no use for Linux, but for the
+   sake of common code, a dummy string is used
+*/
+#if defined(_WIN32) || defined(_WIN64)
+#define DRIVER_MAGIC "0xdeadbeef"
+#else
+#define DRIVER_MAGIC "Not required for Linux"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -345,7 +354,7 @@ NTSTATUS VfsUnLockVolume(PVFS_FILESYS VfsSys );
 NTSTATUS VfsDisMountVolume(PVFS_FILESYS VfsSys );
 NTSTATUS VfsOpenDevice(PVFS_FILESYS VfsSys,PUCHAR DeviceName );
 NTSTATUS VfsCloseDevice( PVFS_FILESYS VfsSys);
-NTSTATUS VfsDevtoLetter(const char *DevName, const char *driver);
+int      VfsDevtoLetter(const char *DevName, const char *driver);
 int      Unmount(const char *driver);
 //! vfs.c
 FAT_ERROR VFS_Open(HD_VFS_INIT *pOpen);

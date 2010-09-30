@@ -1268,10 +1268,11 @@ errorout:
 NTSTATUS
 VfsGetMediaInfo( PVFS_FILESYS VfsSys )
 {
+    NTSTATUS Status = STATUS_SUCCESS;
+
 #if defined(_WIN32) || defined(_WIN64)
     // Try to get media info for device; most probably not possible
     // under Windows in case the device is locked / opened!
-    NTSTATUS Status;
     IO_STATUS_BLOCK IoSb;
 
     Status = NtDeviceIoControlFile( VfsSys->MediaHandle,
@@ -1281,9 +1282,8 @@ VfsGetMediaInfo( PVFS_FILESYS VfsSys )
                                 &(VfsSys->DiskGeometry), sizeof(DISK_GEOMETRY));
 
 
-    if (!NT_SUCCESS(Status))
-    {
-        goto errorout;
+    if (!NT_SUCCESS(Status)) {
+        return Status;
     }
 
     Status = NtDeviceIoControlFile( VfsSys->MediaHandle,
@@ -1291,28 +1291,20 @@ VfsGetMediaInfo( PVFS_FILESYS VfsSys )
                                 IOCTL_DISK_GET_PARTITION_INFO,
                                 &(VfsSys->PartInfo), sizeof(PARTITION_INFORMATION),
                                 &(VfsSys->PartInfo), sizeof(PARTITION_INFORMATION));
-
-    if (!NT_SUCCESS(Status))
-    {
-        goto errorout;
-    }
-
-errorout:
-
-    return Status;
 #else
-    // Not yet implemented for Linux
-    // Note: needs to be corrected to STATUS_SUCCESS when higher-level logic is fixed
+    // No need to probe/provide media information for Linux (yet)
+    // Set the file access method here
     VfsSys->bFile = 1;
-    return 1;
 #endif
+    return Status;
 }
 
 NTSTATUS
 VfsLockVolume( PVFS_FILESYS VfsSys )
 {
+    NTSTATUS Status = STATUS_SUCCESS;
+
 #if defined(_WIN32) || defined(_WIN64)
-    NTSTATUS Status;
     IO_STATUS_BLOCK IoSb;
 
     Status = ZwFsControlFile( VfsSys->MediaHandle,
@@ -1320,29 +1312,23 @@ VfsLockVolume( PVFS_FILESYS VfsSys )
                               FSCTL_LOCK_VOLUME,
                               NULL, 0, NULL, 0 );
 
-    if (!NT_SUCCESS(Status))
-    {
+    if (!NT_SUCCESS(Status)) {
         printf("disk: Error when locking volume: Status = %xh %s...\n",
                (int) Status, VfsStatusToString(Status));
-
-        goto errorout;
     }
-
-errorout:
-
-    return Status;
 #else
-    // Not yet implemented for Linux
-    return STATUS_SUCCESS;
+    // Not (yet) implemented for Linux
 #endif
+    return Status;
 }
 
 
 NTSTATUS
 VfsUnLockVolume( PVFS_FILESYS VfsSys )
 {
+    NTSTATUS Status = STATUS_SUCCESS;
+
 #if defined(_WIN32) || defined(_WIN64)
-    NTSTATUS Status;
     IO_STATUS_BLOCK IoSb;
 
     Status = ZwFsControlFile( VfsSys->MediaHandle,
@@ -1350,26 +1336,21 @@ VfsUnLockVolume( PVFS_FILESYS VfsSys )
                               FSCTL_UNLOCK_VOLUME,
                               NULL, 0, NULL, 0 );
 
-    if (!NT_SUCCESS(Status))
-    {
+    if (!NT_SUCCESS(Status)) {
         printf("disk: Error when unlocking volume ...\n");
-        goto errorout;
     }
-
-errorout:
-
-    return Status;
 #else
-    // Not yet implemented for Linux
-    return STATUS_SUCCESS;
+    // Not (yet) implemented for Linux
 #endif
+    return Status;
 }
 
 NTSTATUS
 VfsDisMountVolume( PVFS_FILESYS VfsSys )
 {
+    NTSTATUS Status = STATUS_SUCCESS;
+
 #if defined(_WIN32) || defined(_WIN64)
-    NTSTATUS Status;
     IO_STATUS_BLOCK IoSb;
 
     Status = ZwFsControlFile( VfsSys->MediaHandle,
@@ -1377,27 +1358,22 @@ VfsDisMountVolume( PVFS_FILESYS VfsSys )
                               FSCTL_DISMOUNT_VOLUME,
                               NULL, 0, NULL, 0 );
 
-    if (!NT_SUCCESS(Status))
-    {
+    if (!NT_SUCCESS(Status)) {
         printf("disk: Error when dismounting volume ...\n");
-        goto errorout;
     }
-
-errorout:
-
-    return Status;
 #else
-    // Not yet implemented for Linux
-    return STATUS_SUCCESS;
+    // Not (yet) implemented for Linux
 #endif
+    return Status;
 }
 
 NTSTATUS
 VfsOpenDevice(  PVFS_FILESYS VfsSys,
-                 PUCHAR        DeviceName )
+                PUCHAR       DeviceName )
 {
+    NTSTATUS Status = STATUS_SUCCESS;
+
 #if defined(_WIN32) || defined(_WIN64)
-    NTSTATUS Status;
     UNICODE_STRING UnicodeFilespec;
     OBJECT_ATTRIBUTES ObjectAttributes;
     HANDLE FileHandle;
@@ -1407,11 +1383,6 @@ VfsOpenDevice(  PVFS_FILESYS VfsSys,
     ANSI_STRING AnsiFilespec;
     SHORT  UnicodeName[256];
     UCHAR  AnsiName[256];
-    /*
-	DefineDosDeviceW(
-		0,
-		0,
-		0);*/
 
     memset(UnicodeName, 0, sizeof(SHORT) * 256);
     memset(UnicodeName, 0, sizeof(UCHAR) * 256);
@@ -1434,7 +1405,6 @@ VfsOpenDevice(  PVFS_FILESYS VfsSys,
     AnsiFilespec.MaximumLength =
     AnsiFilespec.Length = NameLength;
     AnsiFilespec.Buffer = (PCHAR)AnsiName;
-
 
     UnicodeFilespec.MaximumLength = 256 * 2;
     UnicodeFilespec.Length = 0;
@@ -1464,7 +1434,6 @@ VfsOpenDevice(  PVFS_FILESYS VfsSys,
     if( !NT_SUCCESS(Status) )
     {
         printf("disk: Create system service failed status = 0x%0x\n",(int) Status);
-
         return Status;
     }
     //
@@ -1477,55 +1446,48 @@ VfsOpenDevice(  PVFS_FILESYS VfsSys,
     }
 
     VfsSys->MediaHandle = FileHandle;
-
-    return Status;
 #else
-    VfsSys->MediaHandle = open ((char*)DeviceName, O_RDWR | O_LARGEFILE);
+    VfsSys->MediaHandle = open((char*)DeviceName, O_RDWR | O_LARGEFILE);
     if (VfsSys->MediaHandle == -1) {
         printf("Error during open <%s>: %s\n", DeviceName, strerror(errno));
+        return -1;
     }
 
-    return VfsSys->MediaHandle;
 #endif
+    return Status;
 }
 
 NTSTATUS
 VfsCloseDevice( PVFS_FILESYS VfsSys)
 {
-#if defined(_WIN32) || defined(_WIN64)
     NTSTATUS Status = STATUS_SUCCESS;
 
-    if(VfsSys->MediaHandle)
-    {
+#if defined(_WIN32) || defined(_WIN64)
+    if(VfsSys->MediaHandle) {
         Status = NtClose(VfsSys->MediaHandle);
     }
-
-    return Status;
 #else
-    int Status = -1;
-
     if(VfsSys->MediaHandle != -1) {
-        Status = close(VfsSys->MediaHandle);
+        if (close(VfsSys->MediaHandle) == -1)
+            return -1;
     }
-
-    return Status;
 #endif
+    return Status;
 }
 
-NTSTATUS
-VfsDevtoLetter(const char *DevName, const char *driver)
+
+int VfsDevtoLetter(const char *DevName, const char *driver)
 {
-     NTSTATUS Status = STATUS_SUCCESS;
      printf("mount %s to %s\n",DevName,driver);
 #if defined(_WIN32) || defined(_WIN64)
      if(!DefineDosDeviceA(DDD_RAW_TARGET_PATH,(LPCSTR)driver,(LPCSTR)DevName)){
-         printf(" ERROR ");
+         printf(" ERROR 0x%lx", GetLastError());
          return -1;
      }
 #else
     // No direct meaning on Linux, we may want to check here if device is mounted..
 #endif
-    return Status;
+    return 0;
 }
 
 int Unmount(const char *driver)

@@ -48,11 +48,11 @@ int Disk_Thread::Poll_vfs(int dev, bool *ping)
 {
     PVFS_FILESYS        VfsSys       = &FileSys;
 
-    // Try to get media info for device; most probably not possible
-    // under Windows in case the device is locked / opened!
-    // Potential bug here: returns STATUS_SUCCESS (0) in case of success, 
-    // so should be negative logic!!??
-    if(VfsGetMediaInfo(VfsSys)){
+    /* Try to get media info for device; most probably not possible
+       under Windows in case the device is locked / opened!
+       -> Remove files from list in case device is/gets mounted
+    */
+    if(!NT_SUCCESS(VfsGetMediaInfo(VfsSys))){
         lock->lock();
 
         *this->pFileCounter = 0;
@@ -67,7 +67,7 @@ int Disk_Thread::Poll_vfs(int dev, bool *ping)
         lock->unlock();
 
         VfsCloseDevice(VfsSys);
-        Unmount("0xdeadbeef");
+        Unmount(DRIVER_MAGIC);
         *ping = true;
     }
     return dev;
@@ -148,13 +148,13 @@ int Disk_Thread::init_vfs(int dev, bool *ping)
     snprintf(textMessage, 100, "Test device %s\n", DevName);
     printTextBrowser(textMessage);
 
-    if(VfsDevtoLetter(DevName,"0xdeadbeef")){
+    if(VfsDevtoLetter(DevName, DRIVER_MAGIC) == -1) {
         printTextBrowser("Dev not ready!\n");
         dev = 0;
-    }else{
+    } else {
         qDebug(" DEV OK");
 #if defined(_WIN32) || defined(_WIN64)
-        sprintf(DevName, "%s", "0xdeadbeef");
+        sprintf(DevName, "%s", DRIVER_MAGIC);
 #endif
         if(!NT_SUCCESS(VfsOpenDevice(VfsSys, (PUCHAR)DevName))){
             printTextBrowser("vfs:  Volume does not exist!\n");
@@ -201,10 +201,10 @@ int Disk_Thread::init_vfs(int dev, bool *ping)
                 return devNr;
             }
             VfsCloseDevice(VfsSys);
-            devNr += 1;
+            devNr++;
         }
     }
-    Unmount("0xdeadbeef");
+    Unmount(DRIVER_MAGIC);
     return devNr;
 }
 

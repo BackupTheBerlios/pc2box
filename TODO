@@ -1,14 +1,23 @@
 Medium priority:
-* Linux: Add support for multiple devices with LaSat FS
-         If more than one device with LaSat FS is connected, only
-         one (the first in the sequence of device files) will be recognized
-
-* Windows: Improper return code handling for VfsGetMediaInfo
-           STATUS_SUCCESS is 0, but code in Poll_vfs() continues in case of 
-           non-zero return code
-* Windows: replace "0xdeadbeef" with an instance specific string
-
+* All: Check if transfer speed can be enhanced by reducing the 10ms delay between
+       each data chunk and the 100ms delay between each file
+* All: Add support for multiple devices with LaSat FS
+       If multiple devices with LaSat FS are connected, currently only
+       one (the first in the sequence of device files) will be recognized
+       Windows: Clarify if this can be done through the "0xdeadbeef" handle
+* All: Let users select REC files for pc2box (upload) rather than taking all
+       REC files within the current directory
+* All: Resolve pc2box (upload) file name issues
+       a) File name on disk too long for LaSat FS
+       b) File name not unique on LaSat FS
 * All: Fix bFile handling, currently not initialized on Windows
 * All: Decouple synchronization from file locking
-* All: Eliminate timing-based synchronization (msleep()) if possible
+* All: Eliminate timing-based synchronization (msleep()) entirely if possible
+
+Low priority:
 * All: Prevent multiple file list updates during startup
+
+Ideas for future extensions:
+* All: Show EPG information for selected recording
+* All: New functionality to delete files on device
+* All: Add EPG content editor
