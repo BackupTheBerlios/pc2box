@@ -4,7 +4,7 @@ Medium priority:
 * All: Add support for multiple devices with LaSat FS
        If multiple devices with LaSat FS are connected, currently only
        one (the first in the sequence of device files) will be recognized
-       Windows: Clarify if this can be done through the "0xdeadbeef" handle
+       Windows: Check if this can be done through the "0xdeadbeef" driver
 * All: Let users select REC files for pc2box (upload) rather than taking all
        REC files within the current directory
 * All: Resolve pc2box (upload) file name issues

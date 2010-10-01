@@ -465,7 +465,7 @@ void MyForm::retranslateUi(QWidget *Form)
     treeWidget->headerItem()->setText(1, QApplication::translate("Form", "Name", 0, QApplication::UnicodeUTF8));
     treeWidget->headerItem()->setText(2, QApplication::translate("Form", "Gr\303\266sse", 0, QApplication::UnicodeUTF8));
     treeWidget->headerItem()->setText(3, QApplication::translate("Form", "Zeit", 0, QApplication::UnicodeUTF8));
-    pushButtonQuit->setText(QApplication::translate("Form", "Quit", 0, QApplication::UnicodeUTF8));
+    pushButtonQuit->setText(QApplication::translate("Form", "Ende", 0, QApplication::UnicodeUTF8));
     pushButtonInfo->setText(QApplication::translate("Form", "Info", 0, QApplication::UnicodeUTF8));
     pushButtonREC2TS->setText(QApplication::translate("Form", "REC->TS", 0, QApplication::UnicodeUTF8));
     Q_UNUSED(Form);
@@ -552,7 +552,12 @@ void MyForm::pc2box(){
         QMessageBox::warning( this, tr(" ERROR "),tr(" upload running "));
         return;
     }
-
+    
+    // TBD: replace entire following code with
+    //      Multi-file selection box
+    //      File name translation (strip off path) using QFileInfo::fileName()
+    //      File name collision detection (compare with device file list and
+    //        rename if necessary
     QDir dir;
     dir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
     dir.setSorting(QDir::Size | QDir::Reversed);
@@ -611,6 +616,7 @@ void MyForm::pc2box(){
             str++;
         }
     }
+    // END TBD
 
     if(!Filespc2box.fileCount){
         QMessageBox::warning( this, tr(" ERROR "),tr(" no suitable *.rec file found "));
