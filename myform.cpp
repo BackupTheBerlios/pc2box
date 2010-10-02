@@ -273,6 +273,9 @@ MyForm::MyForm()
     this->FilestoDownload.FileList = 0;
     this->Filespc2box.FileList = 0;
 
+    FilesREC2TS.index = 0;
+    FilesREC2TS.fileList.clear();
+
     // Setup data structures that are shared with the disk thread
     THREAD_Params ThreadParams;
     ThreadParams.threadName     = "MyThread";

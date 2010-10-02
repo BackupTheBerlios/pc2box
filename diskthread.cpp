@@ -642,6 +642,9 @@ U32 Disk_Thread::REC2TSProcessing(void)
     char *buffer;
     
     lock->lock();
+    if (pREC2TS == NULL)
+        return 0;
+    
     if (pREC2TS->index > 0) {
         DownloadBarInfo Bar;
         memset(&Bar,0x00,sizeof(DownloadBarInfo));
