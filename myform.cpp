@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <math.h>
 #include "vfs.h"
 
 MyForm::MyForm()
@@ -460,17 +461,20 @@ void MyForm::resize(QWidget *Form)
 void MyForm::retranslateUi(QWidget *Form)
 {
     Form->setWindowTitle(QApplication::translate("Form", "pc2Box", 0, QApplication::UnicodeUTF8));
-    pushButtonPc2box->setText(QApplication::translate("Form", "pc2box", 0, QApplication::UnicodeUTF8));
+    pushButtonPc2box->setText(QApplication::translate("Form", "pc2box...", 0, QApplication::UnicodeUTF8));
+    pushButtonPc2box->setToolTip(QString("Rohformat-Datei auf Receiver Uebertragen"));
     pushButtonLoadTS->setText(QApplication::translate("Form", "TS laden", 0, QApplication::UnicodeUTF8));
-    pushButtonLoadREC->setToolTip(QString());
+    pushButtonLoadTS->setToolTip(QString("Stream im MPEG-TS Format speichern"));
     pushButtonLoadREC->setText(QApplication::translate("Form", "Rec laden", 0, QApplication::UnicodeUTF8));
-    treeWidget->headerItem()->setText(0, QApplication::translate("Form", "Nbr", 0, QApplication::UnicodeUTF8));
+    pushButtonLoadREC->setToolTip(QString("Stream im Rohformat speichern"));
+    pushButtonREC2TS->setText(QApplication::translate("Form", "REC->TS...", 0, QApplication::UnicodeUTF8));
+    pushButtonREC2TS->setToolTip(QString("Rohformat-Datei in MPEG-TS wandeln"));
+    pushButtonInfo->setText(QApplication::translate("Form", "Info...", 0, QApplication::UnicodeUTF8));
+    pushButtonQuit->setText(QApplication::translate("Form", "Ende", 0, QApplication::UnicodeUTF8));
+    treeWidget->headerItem()->setText(0, QApplication::translate("Form", "Nummer", 0, QApplication::UnicodeUTF8));
     treeWidget->headerItem()->setText(1, QApplication::translate("Form", "Name", 0, QApplication::UnicodeUTF8));
     treeWidget->headerItem()->setText(2, QApplication::translate("Form", "Gr\303\266sse", 0, QApplication::UnicodeUTF8));
     treeWidget->headerItem()->setText(3, QApplication::translate("Form", "Zeit", 0, QApplication::UnicodeUTF8));
-    pushButtonQuit->setText(QApplication::translate("Form", "Ende", 0, QApplication::UnicodeUTF8));
-    pushButtonInfo->setText(QApplication::translate("Form", "Info", 0, QApplication::UnicodeUTF8));
-    pushButtonREC2TS->setText(QApplication::translate("Form", "REC->TS", 0, QApplication::UnicodeUTF8));
     Q_UNUSED(Form);
 }
 
@@ -548,6 +552,24 @@ U32 MyForm::countSelectedFiles(void)
         return is;
 }
 
+QStringList MyForm::getFileNames()
+{
+    int ix;
+    QStringList resultList;
+    QTreeWidgetItem *item;
+    
+    for(ix=0; ix<VFS_ROOT_ENTRIES; ix++) {
+        item = treeWidget->topLevelItem(ix);
+        if(item) {
+            printf(" item %x %s\n",(int)ix,item->text(1).toStdString().c_str());
+            resultList.append(item->text(1));
+        } else {
+            break;
+        }
+    }
+    return resultList;
+}
+
 void MyForm::pc2box(){
     printf(" pc2box 0x%p\n",Filespc2box.FileList);
 
@@ -556,70 +578,48 @@ void MyForm::pc2box(){
         return;
     }
     
-    // TBD: replace entire following code with
-    //      Multi-file selection box
-    //      File name translation (strip off path) using QFileInfo::fileName()
-    //      File name collision detection (compare with device file list and
-    //        rename if necessary
-    QDir dir;
-    dir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
-    dir.setSorting(QDir::Size | QDir::Reversed);
+    QStringList fileList = QFileDialog::getOpenFileNames(this,
+                                                         tr("Open REC file"), 
+                                                         ".", 
+                                                         tr("Rec files (*.rec *.REC)"));
+    if(fileList.isEmpty()) {
+        QMessageBox::warning( this, tr(" ERROR "),tr(" no suitable *.rec file found "));
+        return;
+    } else {
+        QStringList existingFiles = getFileNames();
+        
+        for(int i = 0; i < fileList.size(); ++i) {
+            QFileInfo fileInfo(fileList.at(i));
+            QByteArray asciiFileName = fileInfo.fileName().toAscii();
+            const char *asciiFileNameRaw = asciiFileName.constData();
 
-    QFileInfoList list = dir.entryInfoList();
+            // increment main structure list size
+            Filespc2box.fileCount++;
 
-    Filespc2box.fileCount = 0;
-    Filespc2box.type      = PC2BOX;
-    Filespc2box.FileList  = 0;
+            // allocate linked list entry
+            Filesfordownload *File = (Filesfordownload*) malloc(sizeof(Filesfordownload));
+            // convenient pointer to linked list
+            Filesfordownload *ptr  =  Filespc2box.FileList;
 
-    for(int i = 0; i < list.size(); ++i) {
-        QFileInfo fileInfo   = list.at(i);
-        QString name         = fileInfo.fileName();
-        QByteArray byteArray = name.toAscii();
-        const char *str      = byteArray.constData();
-        U32 ix               = strlen(str);
-        while(ix--){
-            // Try to find ".rec" somewhere in file name
-            // potential bug with a file called "my.record.saved.as.mpg"
-            // Better open the file and check whether it starts with VFS_PC_ACTVERSION
-            if(!strncmp(str,".rec",4)){
-                str      = byteArray.constData();
-                printf(" %s\n",str);
-                Filespc2box.fileCount++;
-
-                Filesfordownload *File = (Filesfordownload*) malloc(sizeof(Filesfordownload));
-                Filesfordownload *ptr  =  Filespc2box.FileList;
-
-                memset((char*)File,0x00,sizeof(Filesfordownload));
-                if(ptr){
-                    while(ptr->next){
-                        printf(" next entry !!!!!\n");
-                        ptr = ptr->next;
-                    }
-                    ptr->next = File;
-                }else{
-                    printf(" first entry !!!!!\n");
-                    Filespc2box.FileList = File;
+            memset((char*)File,0x00,sizeof(Filesfordownload));
+            // check if list is non-empty
+            if(ptr){
+                // seek to free entry
+                while(ptr->next){
+                    printf(" next entry !!!!!\n");
+                    ptr = ptr->next;
                 }
-                ix = strlen(str);
-                if(ix<(VFS_INODEN_NAME_LEN+4)){
-                    char *Str = (char*)&File->EntryName[0];
-                    while (ix--)
-                        *Str++ = *str++;
-                }else{
-                    // File name too long to fit in EntryName[]
-                    // Results in file not being read in FileUploadProcessing
-                    // FIX: remove file from list
-                    printf(" VFS_INODEN_NAME_LEN+5 ==> unable to upload this file\n");
-                    ptr->next = 0;
-                    Filespc2box.fileCount--;
-                    free(File);
-                }
-                break;
+                // set entry to new one
+                ptr->next = File;
+            }else{
+                // list is empty -> initialize first one
+                printf(" first entry !!!!!\n");
+                Filespc2box.FileList = File;
             }
-            str++;
+            // copy (and cut) file name
+            strncpy((char *)File->EntryName, asciiFileNameRaw, VFS_INODEN_NAME_LEN);
         }
     }
-    // END TBD
 
     if(!Filespc2box.fileCount){
         QMessageBox::warning( this, tr(" ERROR "),tr(" no suitable *.rec file found "));
@@ -631,19 +631,18 @@ void MyForm::pc2box(){
 
 void MyForm::Rec2TS()
 {
-    QStringList fileNames = QFileDialog::getOpenFileNames(this,
-                                                          tr("Open REC file"), 
-                                                          ".", 
-                                                          tr("Rec files (*.rec *.REC)"));
-
     FilesREC2TS.index = 0;
     FilesREC2TS.fileList.clear();
 
-    if(fileNames.isEmpty()) {
+    FilesREC2TS.fileList = QFileDialog::getOpenFileNames(this,
+                                                tr("Open REC file"), 
+                                                ".", 
+                                                tr("Rec files (*.rec *.REC)"));
+    
+    if(FilesREC2TS.fileList.isEmpty()) {
         QMessageBox::warning( this, tr(" ERROR "),tr(" No suitable *.rec file found "));
         return;
     } else {
-        FilesREC2TS.fileList = fileNames;
         emit StartREC2TSbeep();
     }
 }

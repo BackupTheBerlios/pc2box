@@ -38,16 +38,14 @@
 #include <QtGui/QCheckBox>
 #include <QtGui/QWidget>
 #include <QObject>
-#include <qwidget.h>
-#include <qmessagebox.h>
-#include <QReadWriteLock>
+#include <QWidget>
+#include <QMessageBox>
 #include <QProgressDialog>
-#include <QDir>
 #include "types.h"
 #include "vfs.h"
 #include "diskthread.h"
 
-#define SW_INFO_ST " TL Version: pc2box v_2.0.4 "
+#define SW_INFO_ST " TL Version: pc2box v_2.0.9 "
 #define TEXTBROWSER_STR_LEN 0x500
 
 
@@ -101,6 +99,7 @@ private:
     FileREC2TS      FilesREC2TS;
 
     U32 countSelectedFiles(void);
+    QStringList getFileNames();
     void resize(QWidget *Form);
     void retranslateUi(QWidget *Form);
     void AddNewFileForDownload(void);

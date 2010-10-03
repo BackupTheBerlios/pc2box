@@ -23,7 +23,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-#include <qthread.h>
+#include <QThread>
 #include <QMutexLocker>
 #include <QFile>
 #include <QStringList>
@@ -117,7 +117,6 @@ public slots:
     FileREC2TS       *pREC2TS;
     Filesfordownload *ActFile;
     Filesfordownload *ActPc2BoxFile;
-    QString          ActREC2TSFile;
 
     int  init_vfs(int dev, bool *ping);
     int  Poll_vfs(int dev, bool *ping);
