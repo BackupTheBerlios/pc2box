@@ -73,15 +73,6 @@ extern "C" {
 
 typedef struct _vfs_filesys
 {
-    int                 flags;
-    int                 blocksize;
-    __u32               stride;
-    __u32               umask;
-    __u32               reserved[8];
-
-    void *                  priv_data;
-
-    BOOLEAN                 bFile;
     HANDLE                  MediaHandle;
 #if defined(_WIN32) || defined(_WIN64)
     DISK_GEOMETRY           DiskGeometry;

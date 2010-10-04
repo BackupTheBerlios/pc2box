@@ -976,126 +976,41 @@ VfsReadDisk(  PVFS_FILESYS  VfsSys,
               ULONG         Length,
               PVOID         Buffer )
 {
+    NTSTATUS        Status;
+
 #if defined(_WIN32) || defined(_WIN64)
     LARGE_INTEGER   Address;
-    NTSTATUS        Status;
-    ULONG           AlignedLength;
     IO_STATUS_BLOCK IoStatus;
-    PVOID           NonPagedBuffer = NULL;
 
-    //Maindebug("start read");
     ASSERT(Buffer != NULL);
-    //printf(" read sector %x \n",(Offset/512));
-    if (VfsSys->bFile)
-    {
-        //Maindebug("\n read from disk 1");
-        Address.QuadPart = Offset;
-        Status = NtReadFile(  VfsSys->MediaHandle,
-                              0,
-                              NULL,
-                              NULL,
-                              &IoStatus,
-                              Buffer,
-                              Length,
-                              &Address,
-                              NULL );
-    }
-    else
-    {
-        //Maindebug("\n read from disk 2");
-        Address.QuadPart = Offset & (~((ULONGLONG)SECTOR_SIZE - 1));
-        AlignedLength    = (Length + SECTOR_SIZE - 1)&(~(SECTOR_SIZE - 1));
-        AlignedLength   += ((ULONG)(Offset - Address.QuadPart) + SECTOR_SIZE - 1) & (~(SECTOR_SIZE - 1));
-        //printf("\n AlignedLength 0x%x",AlignedLength);
-        NonPagedBuffer   = malloc(AlignedLength);
-        //printf("\n alloc_buf at 0x%x",NonPagedBuffer);
-        if (!NonPagedBuffer)
-        {
-            Status = STATUS_INSUFFICIENT_RESOURCES;
-            goto errorout;
-        }
-        Status = NtReadFile( VfsSys->MediaHandle,
-                             0,
-                             NULL,
-                             NULL,
-                             &IoStatus,
-                             NonPagedBuffer,
-                             AlignedLength,
-                             &Address,
-                             NULL );
-        if (!NT_SUCCESS(Status))
-        {
-            goto errorout;
-        }
-        //printf("\n copy to 0x%x with len 0x%x",Buffer,Length);
-        RtlCopyMemory( Buffer,(PUCHAR)NonPagedBuffer + (ULONG)(Offset - Address.QuadPart),Length );
-        //DEBUG_DumpData(Buffer,20);
-    }
-
-errorout:
-    if (NonPagedBuffer)
-        free(NonPagedBuffer);
-    return Status;
+    Address.QuadPart = Offset;
+    Status = NtReadFile(  VfsSys->MediaHandle,
+                          0,
+                          NULL,
+                          NULL,
+                          &IoStatus,
+                          Buffer,
+                          Length,
+                          &Address,
+                          NULL );
 #else
     unsigned long long Address;
-    int Status = -1;
-    unsigned long AlignedLength;
-    void *NonPagedBuffer = NULL;
 
     assert(Buffer != NULL);
-    if (VfsSys->bFile) {
-        Address = Offset;
-        // seek to Address & read length to Buffer
-        Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-        if (Status == -1) {
-            printf("Error during seek to Address %llu %s\n", Address, strerror(errno));
-            return Status;
-        }
-
-        Status = read(VfsSys->MediaHandle, Buffer, Length);
-        if (Status == -1) {
-            printf("Error during read: %s\n", strerror(errno));
-            return Status;
-        }
-
-    } else {
-        Address = Offset & (~((unsigned long long int)SECTOR_SIZE - 1));
-        AlignedLength    = (Length + SECTOR_SIZE - 1)&(~(SECTOR_SIZE - 1));
-        AlignedLength   += ((unsigned long)(Offset - Address) + SECTOR_SIZE - 1) & (~(SECTOR_SIZE - 1));
-        NonPagedBuffer   = malloc(AlignedLength);
-        if (!NonPagedBuffer) {
-            Status = errno;
-            if (NonPagedBuffer)
-                free(NonPagedBuffer);
-            return Status;
-        }
-        if ((AlignedLength != Length) || (Address != Offset)) {
-            // seek to Address & read Alignedlength to NonPagedBuffer
-            Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-            if (Status == -1) {
-                printf("Error during aligned seek: %s\n", strerror(errno));
-                if (NonPagedBuffer)
-                    free(NonPagedBuffer);
-                return Status;
-            }
-
-            Status = read(VfsSys->MediaHandle, NonPagedBuffer, AlignedLength);
-            if (Status == -1) {
-                printf("Error during aligned read: %s\n", strerror(errno));
-                if (NonPagedBuffer)
-                    free(NonPagedBuffer);
-                return Status;
-            }
-        }
-        memcpy ( (unsigned char *)NonPagedBuffer + (unsigned long)(Offset - Address),
-                       Buffer, Length );
+    Address = Offset;
+    // seek to Address & read length to Buffer
+    Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
+    if (Status == -1) {
+        printf("Error during seek to Address %llu %s\n", Address, strerror(errno));
+        return Status;
     }
-
-    if (NonPagedBuffer)
-        free(NonPagedBuffer);
-
-    return Status;
+    
+    Status = read(VfsSys->MediaHandle, Buffer, Length);
+    if (Status == -1) {
+        printf("Error during read: %s\n", strerror(errno));
+    }
 #endif
+    return Status;
 }
 
 NTSTATUS
@@ -1104,165 +1019,43 @@ VfsWriteDisk( PVFS_FILESYS    VfsSys,
                ULONG          Length,
                PVOID          Buffer )
 {
+    NTSTATUS        Status;
+
 #if defined(_WIN32) || defined(_WIN64)
     LARGE_INTEGER   Address;
-    NTSTATUS        Status;
-    ULONG           AlignedLength;
-
     IO_STATUS_BLOCK IoStatus;
-
-    PVOID           NonPagedBuffer = NULL;
 
     ASSERT(Buffer != NULL);
 
-    if (VfsSys->bFile)
-    {
-        Address.QuadPart = Offset;
-
-        Status = NtWriteFile( VfsSys->MediaHandle,
-                              0,
-                              NULL,
-                              NULL,
-                              &IoStatus,
-                              Buffer,
-                              Length,
-                              &Address,
-                              NULL );
-    }
-    else
-    {
-        Address.QuadPart = Offset & (~((ULONGLONG)SECTOR_SIZE - 1));
-
-        AlignedLength  = (Length + SECTOR_SIZE - 1)&(~(SECTOR_SIZE - 1));
-
-        AlignedLength += ((ULONG)(Offset - Address.QuadPart) + SECTOR_SIZE - 1)
-                         & (~(SECTOR_SIZE - 1));
-
-        NonPagedBuffer = malloc(AlignedLength);
-        if (!NonPagedBuffer)
-        {
-            Status = STATUS_INSUFFICIENT_RESOURCES;
-            goto errorout;
-        }
-
-        if ((AlignedLength != Length) || (Address.QuadPart != (LONGLONG)Offset))
-        {
-            Status = NtReadFile( VfsSys->MediaHandle,
-                                 0,
-                                 NULL,
-                                 NULL,
-                                 &IoStatus,
-                                 NonPagedBuffer,
-                                 AlignedLength,
-                                 &Address,
-                                 NULL );
-
-            if(!NT_SUCCESS(Status)){
-                goto errorout;
-              }
-        }
-
-        RtlCopyMemory( (PUCHAR)NonPagedBuffer + (ULONG)(Offset - Address.QuadPart),
-                       Buffer, Length );
-
-        Status = NtWriteFile( VfsSys->MediaHandle,
-                              0,
-                              NULL,
-                              NULL,
-                              &IoStatus,
-                              NonPagedBuffer,
-                              AlignedLength,
-                              &Address,
-                              NULL );
-    }
-
-errorout:
-
-    if (NonPagedBuffer)
-        free(NonPagedBuffer);
-
-    return Status;
+    Address.QuadPart = Offset;
+    Status = NtWriteFile( VfsSys->MediaHandle,
+                          0,
+                          NULL,
+                          NULL,
+                          &IoStatus,
+                          Buffer,
+                          Length,
+                          &Address,
+                          NULL );
 #else
     unsigned long long Address;
-    int Status;
-    unsigned long AlignedLength;
-    void *NonPagedBuffer = NULL;
 
     assert(Buffer != NULL);
-
-    if (VfsSys->bFile) {
-        Address = Offset;
-
-        // seek to Address & write file from buffer with length
-        Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-        if (Status == -1) {
-            printf("Error during seek to Address %llu %s\n", Address, strerror(errno));
-            return Status;
-        }
-        Status = write(VfsSys->MediaHandle, Buffer, Length);
-        if (Status == -1) {
-            printf("Error during write: %s\n", strerror(errno));
-            return Status;
-        }
-    } else {
-        Address = Offset & (~((ULONGLONG)SECTOR_SIZE - 1));
-
-        AlignedLength  = (Length + SECTOR_SIZE - 1)&(~(SECTOR_SIZE - 1));
-
-        AlignedLength += ((ULONG)(Offset - Address) + SECTOR_SIZE - 1)
-                         & (~(SECTOR_SIZE - 1));
-
-        NonPagedBuffer = malloc(AlignedLength);
-        if (!NonPagedBuffer) {
-            Status = errno;
-            if (NonPagedBuffer)
-                free(NonPagedBuffer);
-            return Status;
-        }
-
-        if ((AlignedLength != Length) || (Address != Offset)) {
-
-            // seek to Address & read file from NonPagedBuffer with AlignedLength
-            Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-            if (Status == -1) {
-                printf("Error during aligned seek: %s\n", strerror(errno));
-                if (NonPagedBuffer)
-                    free(NonPagedBuffer);
-                return Status;
-            }
-
-            Status = read(VfsSys->MediaHandle, NonPagedBuffer, AlignedLength);
-            if (Status == -1) {
-                printf("Error during aligned read: %s\n", strerror(errno));
-                if (NonPagedBuffer)
-                    free(NonPagedBuffer);
-                return Status;
-            }
-
-        }
-
-        memcpy ( (unsigned char *)NonPagedBuffer + (unsigned long)(Offset - Address),
-                       Buffer, Length );
-
-        // seek to Address & write file from NonPagedBuffer with AlignedLength
-        Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
-        if (Status == -1) {
-            printf("Error during aligned seek 2: %s\n", strerror(errno));
-            if (NonPagedBuffer)
-                free(NonPagedBuffer);
-            return Status;
-        }
-        Status = write(VfsSys->MediaHandle, NonPagedBuffer, AlignedLength);
-        if (Status == -1) {
-            printf("Error during aligned write: %s\n", strerror(errno));
-            if (NonPagedBuffer)
-                free(NonPagedBuffer);
-            return Status;
-        }
+    Address = Offset;
+    
+    // seek to Address & write file from buffer with length
+    Status = lseek(VfsSys->MediaHandle, Address, SEEK_SET);
+    if (Status == -1) {
+        printf("Error during seek to Address %llu %s\n", Address, strerror(errno));
+        return Status;
     }
-
-    return Status;
+    Status = write(VfsSys->MediaHandle, Buffer, Length);
+    if (Status == -1) {
+        printf("Error during write: %s\n", strerror(errno));
+        return Status;
+    }
 #endif
+    return Status;
 }
 
 NTSTATUS
@@ -1293,8 +1086,6 @@ VfsGetMediaInfo( PVFS_FILESYS VfsSys )
                                 &(VfsSys->PartInfo), sizeof(PARTITION_INFORMATION));
 #else
     // No need to probe/provide media information for Linux (yet)
-    // Set the file access method here
-    VfsSys->bFile = 1;
 #endif
     return Status;
 }

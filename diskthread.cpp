@@ -152,7 +152,6 @@ int Disk_Thread::init_vfs(int dev, bool *ping)
         printTextBrowser("Dev not ready!\n");
         dev = 0;
     } else {
-        qDebug(" DEV OK");
 #if defined(_WIN32) || defined(_WIN64)
         sprintf(DevName, "%s", DRIVER_MAGIC);
 #endif

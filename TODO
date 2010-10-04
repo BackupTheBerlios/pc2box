@@ -5,7 +5,6 @@ Medium priority:
        If multiple devices with LaSat FS are connected, currently only
        one (the first in the sequence of device files) will be recognized
        Windows: Check if this can be done through the "0xdeadbeef" driver
-* All: Fix bFile handling, currently not initialized on Windows
 * All: Decouple synchronization from file locking
 * All: Eliminate timing-based synchronization (msleep()) entirely if possible
 
