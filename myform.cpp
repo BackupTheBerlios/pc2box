@@ -3,7 +3,7 @@
  *
  *  This code implements the QT-based user interface for pc2box
  *
- *  This code was developed by tibor/LaSat and ported to Linux by metterschling
+ *  See the AUTHORS file for the list of contributors
  *
  * This file is part of pc2box, a free C++ PVR file retrieval utility
  *
