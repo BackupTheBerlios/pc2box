@@ -1,18 +1,20 @@
 Medium priority:
-* All: Check if transfer speed can be enhanced by reducing the 10ms delay between
-       each data chunk and the 100ms delay between each file
-* All: Add support for multiple devices with LaSat FS
-       If multiple devices with LaSat FS are connected, currently only
-       one (the first in the sequence of device files) will be recognized
-       Windows: Check if this can be done through the "0xdeadbeef" driver
+* All: Check if transfer speed can be enhanced by reducing the 10ms delay 
+       between each data chunk and the 100ms delay between each file
+       Ideally: Eliminate timing-based synchronization (msleep()) entirely
+       if possible
 * All: Decouple synchronization from file locking
-* All: Eliminate timing-based synchronization (msleep()) entirely if possible
 
 Low priority:
 * All: Prevent multiple file list updates during startup
-* All: Localization
+* All: Localization (support for multiple UI languages)
 
-Ideas for future extensions:
-* All: Show EPG information for selected recording
+Ideas for future enhancements:
+* All: Add support for multiple devices with LaSat FS
+       If multiple devices with LaSat FS are connected, currently only
+       one (the first in the sequence of device files) will be recognized
+       This may require a significant UI change to associate titles to
+       devices (tree view)
+       Windows: Check the "0xdeadbeef" driver will support multiple devices
 * All: New functionality to delete files on device
 * All: Add EPG content editor

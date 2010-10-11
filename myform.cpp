@@ -261,6 +261,11 @@ MyForm::MyForm()
 
     resize(this);
 
+    QAction* epgAction = new QAction("&EPG...", treeWidget);
+    treeWidget->addAction(epgAction);
+    QObject::connect(epgAction, SIGNAL(triggered()), this, SLOT(showEPGInfo()));
+    treeWidget->setContextMenuPolicy(Qt::ActionsContextMenu);
+
     QObject::connect(pushButtonQuit   , SIGNAL(clicked(bool)), this, SLOT(close()));
     QObject::connect(pushButtonInfo , SIGNAL(clicked(bool)), this, SLOT(ShowApplicationInfo()));
     QObject::connect(pushButtonPc2box , SIGNAL(clicked(bool)), this, SLOT(pc2box()));
@@ -340,7 +345,7 @@ void MyForm::DisplayLoadBar(){
             QTreeWidgetItem *item=0;
             for(ix=0;ix<VFS_ROOT_ENTRIES;ix++){
                 item = treeWidget->topLevelItem(ix);
-                printf(" item %x %p\n",(int)ix,item);
+                printf(" item 0x%x %p\n",(int)ix,item);
                 if(item){
                     Qt::CheckState itemState = qobject_cast<QCheckBox*>(treeWidget->itemWidget(item, 0))->checkState();
                     if(itemState == Qt::Checked){
@@ -535,7 +540,7 @@ U32 MyForm::countSelectedFiles(void)
     //printf("\n load files as TS ");
     for(ix=0;ix<VFS_ROOT_ENTRIES;ix++){
         item = treeWidget->topLevelItem(ix);
-        printf(" item %x %p\n",(int)ix,item);
+        printf(" item 0x%x %p\n",(int)ix,item);
         if(item){
             Qt::CheckState itemState = qobject_cast<QCheckBox*>(treeWidget->itemWidget(item, 0))->checkState();
             if(itemState == Qt::Checked){
@@ -561,7 +566,7 @@ QStringList MyForm::getFileNames()
     for(ix=0; ix<VFS_ROOT_ENTRIES; ix++) {
         item = treeWidget->topLevelItem(ix);
         if(item) {
-            printf(" item %x %s\n",(int)ix,item->text(1).toStdString().c_str());
+            printf(" item 0x%x %s\n",(int)ix,item->text(1).toStdString().c_str());
             resultList.append(item->text(1));
         } else {
             break;
@@ -645,4 +650,22 @@ void MyForm::Rec2TS()
     } else {
         emit StartREC2TSbeep();
     }
+}
+
+void MyForm::showEPGInfo()
+{
+    QTreeWidgetItem *item = treeWidget->currentItem();
+    HD_VFS_HANDLER *pLocalVFSHandler;
+    char Epg[512] = {0};
+
+    VFS_OpenFile(&pLocalVFSHandler, (INT8U *)(item->text(1).toStdString().c_str()) ,O_RDWR);
+    HD_VFS_GetEventInfobyFileIDX(pLocalVFSHandler->EntryIDX, (INT8U *)Epg);
+    VFS_CloseFile(pLocalVFSHandler, FILE_CLOSE);
+    stripCtrlE(Epg);
+    strcat(Epg, "\n");
+    if (strlen(TextBrowserStr) + strlen(Epg) > TEXTBROWSER_STR_LEN)
+        strcpy(TextBrowserStr, Epg);
+    else
+        strcat(TextBrowserStr, Epg);
+    gotBeep();
 }

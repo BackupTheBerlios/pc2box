@@ -90,7 +90,7 @@ void Disk_Thread::UpdateFileListWidget(void){
         if(VFS_GetFileInfobyIndex(idx,File) == FAT_OK){
             if(File->Inode.status == INODE_BUSY){
                 *this->pFileCounter = idx+1;
-                printf(" VFS loop %x\n",(int)*this->pFileCounter);
+                printf(" VFS loop 0x%x\n",(int)*this->pFileCounter);
                 AddNewVFSHandler(File);
                 while(*this->pFileCounter != 0xffffffff){ // sync thread
                     lock->unlock();
@@ -184,7 +184,7 @@ int Disk_Thread::init_vfs(int dev, bool *ping)
 
                             lock->lock();
                             *this->pFileCounter = idx+1;
-                            printf(" VFS loop %x\n",(int)*this->pFileCounter);
+                            printf(" VFS loop 0x%x\n",(int)*this->pFileCounter);
                             AddNewVFSHandler(File);
                             while(*this->pFileCounter != 0xffffffff){ // sync thread
                                 lock->unlock();

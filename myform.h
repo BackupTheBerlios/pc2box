@@ -68,7 +68,8 @@ public slots:
     virtual void LoadTSFiles();
     virtual void pc2box();
     virtual void Rec2TS();
-
+    virtual void showEPGInfo();
+    
     void         gotBeep();
     void         updateFileListWidget();
     void         clearFileListWidget();
