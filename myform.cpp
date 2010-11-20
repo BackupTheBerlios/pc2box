@@ -284,7 +284,6 @@ MyForm::MyForm()
 
     // Setup data structures that are shared with the disk thread
     THREAD_Params ThreadParams;
-    ThreadParams.threadName     = "MyThread";
     ThreadParams.strOutput      = this->TextBrowserStr;
     ThreadParams.pFileHandler   = &this->ActVfsHandler;
     ThreadParams.pLock          = &this->lock;
@@ -300,14 +299,17 @@ MyForm::MyForm()
 
     //! Start threading
     a = new Disk_Thread(&ThreadParams);
+
+    // thread->myform communication
     QObject::connect( a, SIGNAL( beep() ), this, SLOT( gotBeep() ) );                       // update Textbrowser
     QObject::connect( a, SIGNAL( FileListbeep() ), this, SLOT( updateFileListWidget() ) );  // update FileListWidget
     QObject::connect( a, SIGNAL( DiskRemovebeep() ), this, SLOT( clearFileListWidget() ) ); // clear  FileListWidget
-    QObject::connect( a, SIGNAL( UpdateBarbeep() ), this, SLOT( DisplayLoadBar() ) );       // clear  FileListWidget
+    QObject::connect( a, SIGNAL( UpdateBarbeep() ), this, SLOT( DisplayLoadBar() ) );       // update progress bar
+    // myform->thread communication
     QObject::connect( this, SIGNAL( StartDownloadbeep() ), a, SLOT( StartDownload() ) );    // start  download
-    QObject::connect( this, SIGNAL( Startpc2boxbeep() )  , a, SLOT( StartUpload() ) );      // start upload/pc2box
-    QObject::connect( this, SIGNAL( StartREC2TSbeep() )  , a, SLOT( StartREC2TS() ) );      // start REC->TS
-
+    QObject::connect( this, SIGNAL( Startpc2boxbeep() )  , a, SLOT( StartUpload() ) );      // start  upload/pc2box
+    QObject::connect( this, SIGNAL( StartREC2TSbeep() )  , a, SLOT( StartREC2TS() ) );      // start  REC->TS
+    // progress dialog->thread communication
     QObject::connect(pd, SIGNAL(canceled()), a, SLOT(transferCancel()));
     a->start();
 }
@@ -343,9 +345,11 @@ void MyForm::DisplayLoadBar(){
             // close popup
             U32 ix;
             QTreeWidgetItem *item=0;
+
+            // uncheck all items
             for(ix=0;ix<VFS_ROOT_ENTRIES;ix++){
                 item = treeWidget->topLevelItem(ix);
-                printf(" item 0x%x %p\n",(int)ix,item);
+                printf(" item %i %p\n",(int)ix,item);
                 if(item){
                     Qt::CheckState itemState = qobject_cast<QCheckBox*>(treeWidget->itemWidget(item, 0))->checkState();
                     if(itemState == Qt::Checked){
@@ -370,6 +374,7 @@ void MyForm::DisplayLoadBar(){
     lock.unlock();
 }
 
+// Add a single entry to the file list, triggered by FileListbeep
 void MyForm::updateFileListWidget(){
     char *Str;
     U32 Flen;
@@ -663,6 +668,7 @@ void MyForm::showEPGInfo()
     VFS_CloseFile(pLocalVFSHandler, FILE_CLOSE);
     stripCtrlE(Epg);
     strcat(Epg, "\n");
+    // TBD: sync access to TextBrowserStr for potential future Disk_Thread use
     if (strlen(TextBrowserStr) + strlen(Epg) > TEXTBROWSER_STR_LEN)
         strcpy(TextBrowserStr, Epg);
     else

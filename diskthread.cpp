@@ -33,7 +33,6 @@
 
 Disk_Thread::Disk_Thread(THREAD_Params *pParams)
 {
-    this->name           = pParams->threadName;
     this->strOutput      = pParams->strOutput;
     this->pActVfsHandler = pParams->pFileHandler;
     this->lock           = pParams->pLock;
@@ -60,6 +59,7 @@ int Disk_Thread::Poll_vfs(int dev, bool *ping)
         emit DiskRemovebeep();
         while(*this->pFileCounter != 0xffffffff) { // sync thread
             lock->unlock();
+            // Give the myform thread the chance to update the variable (task switch)
             msleep(1);
             lock->lock();
         }
@@ -73,6 +73,7 @@ int Disk_Thread::Poll_vfs(int dev, bool *ping)
     return dev;
 }
 
+// Note: This code needs to be called from a context where the lock mutex is locked
 void Disk_Thread::UpdateFileListWidget(void){
     U32 idx;
     HD_VFS_HANDLER *File = (HD_VFS_HANDLER*)malloc(sizeof(HD_VFS_HANDLER));
@@ -226,9 +227,11 @@ void Disk_Thread::prepareFileName(char *Str)
 void Disk_Thread::transferCancel(void)
 {
     static Filesfordownload DummyActFile={{0},0};
-    printf(" transfer cancelled !!!!!!!!!!!!!!!!!!!!!\n");
+    printf(" transfer cancel request!\n");
 
     lock->lock();
+
+    printf(" cancel granted!\n");
 
     if(VFSHandler){
         VFS_CloseFile(VFSHandler,FILE_CLOSE);
@@ -241,11 +244,21 @@ void Disk_Thread::transferCancel(void)
         PCFile =0;
     }
 
+    if (REC2TSDest){
+        REC2TSDest->close();
+        delete REC2TSDest;
+        REC2TSDest = 0;
+    }
+    
     if(ActFile)       
         ActFile = &DummyActFile;
     if(ActPc2BoxFile) 
         ActPc2BoxFile = &DummyActFile;
 
+    if (pREC2TS)
+        if (pREC2TS->index > 0)
+            pREC2TS->index = 0;
+    
     lock->unlock();
 }
 
@@ -462,7 +475,7 @@ void Disk_Thread::StartREC2TS(void)
     lock->unlock();
 }
 
-U32 Disk_Thread::FileUploadProcessing(void)
+void Disk_Thread::FileUploadProcessing(void)
 {
     lock->lock();
     if(ActPc2BoxFile){
@@ -538,7 +551,7 @@ U32 Disk_Thread::FileUploadProcessing(void)
                 updateDownloadbar(&Bar);
 
                 lock->unlock();
-                return 10;
+                return;
             }
 
         }else{
@@ -566,10 +579,10 @@ U32 Disk_Thread::FileUploadProcessing(void)
         }
     }
     lock->unlock();
-    return 100;
+    return;
 }
 
-U32 Disk_Thread::FileDownloadProcessing(void)
+void Disk_Thread::FileDownloadProcessing(void)
 {
     lock->lock();
     if(ActFile){
@@ -605,7 +618,7 @@ U32 Disk_Thread::FileDownloadProcessing(void)
                 updateDownloadbar(&Bar);
 
                 lock->unlock();
-                return 10;
+                return;
 
             }
         }else{
@@ -632,17 +645,19 @@ U32 Disk_Thread::FileDownloadProcessing(void)
         }
     }
     lock->unlock();
-    return 100;
+    return;
 }
 
-U32 Disk_Thread::REC2TSProcessing(void)
+void Disk_Thread::REC2TSProcessing(void)
 {
     size_t numread, numwritten;
     char *buffer;
     
     lock->lock();
-    if (pREC2TS == NULL)
-        return 0;
+    if (pREC2TS == NULL) {
+        lock->unlock();
+        return;
+    }
     
     if (pREC2TS->index > 0) {
         DownloadBarInfo Bar;
@@ -651,35 +666,41 @@ U32 Disk_Thread::REC2TSProcessing(void)
         Bar.bar  = PCFile->pos()*100 / PCFile->size();
         updateDownloadbar(&Bar);
 
-        buffer = (char *)malloc(sizeof(char) * VFS_REC_SIZE);
-        numwritten = VFS_TSPACK_SIZE;
-        printf("Copying");
-
-        numread = PCFile->read(buffer, sizeof(char) * VFS_REC_SIZE);
-        if( numread > VFS_TSPACK_SIZE ) 
-            numread = VFS_TSPACK_SIZE; // truncate to VFS_TSPACK_SIZE
+        // Handle case that transfer was cancelled
+        if (PCFile) {
+            buffer = (char *)malloc(sizeof(char) * VFS_REC_SIZE);
+            numwritten = VFS_TSPACK_SIZE;
+            printf("Copying");
+            
+            numread = PCFile->read(buffer, sizeof(char) * VFS_REC_SIZE);
+            if( numread > VFS_TSPACK_SIZE ) 
+                numread = VFS_TSPACK_SIZE; // truncate to VFS_TSPACK_SIZE
         
-        if (numread == VFS_TSPACK_SIZE) {
-            numwritten = REC2TSDest->write(buffer, sizeof(char) * numread);
-        } else {
-            // file end
-            free(buffer);
-            PCFile->close();
-            REC2TSDest->close();
-            delete PCFile;
-            delete REC2TSDest;
-            if (pREC2TS->index == pREC2TS->fileList.size()) {
-                pREC2TS->index = 0;
-                DownloadBarInfo Bar;
-                memset(&Bar,0x00,sizeof(DownloadBarInfo));
-                Bar.bar = 0xffff0000;
-                updateDownloadbar(&Bar);
-            } else
-                OpenFilesForTS2REC();
+            if (numread == VFS_TSPACK_SIZE) {
+                numwritten = REC2TSDest->write(buffer, sizeof(char) * numread);
+                free(buffer);
+            } else {
+                // file end
+                free(buffer);
+                PCFile->close();
+                REC2TSDest->close();
+                delete PCFile;
+                PCFile = 0;
+                delete REC2TSDest;
+                REC2TSDest = 0;
+                if (pREC2TS->index == pREC2TS->fileList.size()) {
+                    pREC2TS->index = 0;
+                    DownloadBarInfo Bar;
+                    memset(&Bar,0x00,sizeof(DownloadBarInfo));
+                    Bar.bar = 0xffff0000;
+                    updateDownloadbar(&Bar);
+                } else
+                    OpenFilesForTS2REC();
+            }
         }
     }
     lock->unlock();
-    return 0;
+    return;
 }
 
 
@@ -705,13 +726,13 @@ void Disk_Thread::run(void)
     while (count != countPrev) {
         countPrev = count % 25;
         count = (this->*fpDiskPoll)(countPrev,&pingpong);
+        msleep(1);
     }
 #endif
 
     for(;;){
-
-        //---disk_mount_unmount-----
 #if defined(_WIN32) || defined (_WIN64)
+        //---disk_mount_unmount-----
         // Windows only: constant re-polling
         count = (this->*fpDiskPoll)(count,&pingpong);
         if(pingpong){
@@ -725,17 +746,15 @@ void Disk_Thread::run(void)
 #endif
         //--------------------------
         //---file processing--------
-        U32 timeout;
         //--------------------------
         if(ActFile){
-            timeout = FileDownloadProcessing();
+            FileDownloadProcessing();
         } else if (ActPc2BoxFile) {
-            timeout = FileUploadProcessing();
+            FileUploadProcessing();
         } else if (pREC2TS->index > 0) {
-            timeout = REC2TSProcessing();
-        } else
-            timeout = 100;
-        msleep(timeout);
-
+            REC2TSProcessing();
+        }
+        // Give up timeslice for main thread
+        msleep(1);
     }
 }

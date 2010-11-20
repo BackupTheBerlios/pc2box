@@ -1,4 +1,7 @@
 Medium priority:
+* All: Segmentation fault when cancelling REC->TS conversion at 100%
+* All: Intermittent deadlock when cancelling REC->TS conversion, especially
+       when running under gdb
 * All: Check if transfer speed can be enhanced by reducing the 10ms delay 
        between each data chunk and the 100ms delay between each file
        Ideally: Eliminate timing-based synchronization (msleep()) entirely

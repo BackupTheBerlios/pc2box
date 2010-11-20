@@ -61,7 +61,6 @@ typedef struct {
 
     
 typedef struct {
-    std::string threadName;
     char *strOutput;
     HD_VFS_HANDLER *pFileHandler;
     QMutex *pLock;
@@ -92,7 +91,6 @@ public slots:
     void      transferCancel();
 
  private:
-    std::string      name;
     VFS_FILESYS      FileSys;
     HD_VFS_INIT      VfsInit;
     char             *strOutput;
@@ -106,9 +104,9 @@ public slots:
     QFile            *REC2TSDest;
     HD_VFS_MARK_INFO MarkInfo;
     U8               RecordBuffer[VFS_REC_SIZE+500];
-    U32              FileDownloadProcessing(void);
-    U32              FileUploadProcessing(void);
-    U32              REC2TSProcessing(void);
+    void             FileDownloadProcessing(void);
+    void             FileUploadProcessing(void);
+    void             REC2TSProcessing(void);
     void             prepareFileName(char *Str);
     U32              CreateVFSEntry(char* name);
 

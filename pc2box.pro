@@ -30,7 +30,7 @@ RC_FILE      = win.rc
 
 # The next two lines turn off optimization and enable debug mode (-g -O0)
 #CONFIG -= release
-#CONFIG += debug
+CONFIG += debug
 # QMAKE_CXXFLAGS += and QMAKE_CFLAGS += can set individual flags too
 
 # Input
