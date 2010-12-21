@@ -866,7 +866,11 @@ FAT_ERROR VFS_Mount(INT32U SecLba)
     free = hd_vfs_find_first_zero((INT8U*)(Drive.FreeBitmap.pBitmap),Drive.V_FAT.freelistsizeinbyte,&err);
     printf(" First free 0x%x\n",free);
     //! update buffer
-    Drive.FreeBitmap.firstfree     = free;
+    if(free != 0xffffffff) {
+        Drive.FreeBitmap.firstfree = free;
+    } else {
+        Drive.FreeBitmap.firstfree = 0;
+    }
     Drive.FreeBitmap.Bitmapbytelen = Drive.V_FAT.freelistsizeinbyte;
     //! dump root
     hd_vfs_printDir(0);
