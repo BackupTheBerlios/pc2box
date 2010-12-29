@@ -18,6 +18,6 @@ Ideas for future enhancements:
        one (the first in the sequence of device files) will be recognized
        This may require a significant UI change to associate titles to
        devices (tree view)
-       Windows: Check the "0xdeadbeef" driver will support multiple devices
+       Windows: Check if the "0xdeadbeef" driver supports multiple devices
 * All: New functionality to delete files on device
 * All: Add EPG content editor

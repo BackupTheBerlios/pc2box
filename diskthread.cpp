@@ -441,8 +441,6 @@ void Disk_Thread::StartUpload(void)
     }else{
         printf(" nothing available\n");
     }
-    printf(" ---------- END   upload -----------------\n");
-
     lock->unlock();
 }
 
@@ -457,8 +455,6 @@ void Disk_Thread::StartDownload(void)
     }else{
         printf(" nothing available\n");
     }
-    printf(" ---------- END   download ---------------\n");
-
     lock->unlock();
 }
 
@@ -471,7 +467,6 @@ void Disk_Thread::StartREC2TS(void)
     }else{
         printf(" nothing available\n");
     }
-    printf(" ---------- END   REC->TS -----------------\n");
     lock->unlock();
 }
 
@@ -560,6 +555,7 @@ void Disk_Thread::FileUploadProcessing(void)
                 // open next file
                 OpenFilesForUpload();
             }else{
+                // no more files in queue
                 Filesfordownload *ptr = pPc2Box->FileList,*tmp;
                 while(ptr){
                     tmp = ptr;
@@ -574,7 +570,7 @@ void Disk_Thread::FileUploadProcessing(void)
                 updateDownloadbar(&Bar);
 
                 UpdateFileListWidget();
-                printf("END");
+                printf(" ---------- END   upload -----------------\n");
             }
         }
     }
@@ -640,7 +636,7 @@ void Disk_Thread::FileDownloadProcessing(void)
                 memset(&Bar,0x00,sizeof(DownloadBarInfo));
                 Bar.bar = 0xffff0000;
                 updateDownloadbar(&Bar);
-                printf("END");
+                printf(" ---------- END   download ---------------\n");
             }
         }
     }
@@ -694,6 +690,7 @@ void Disk_Thread::REC2TSProcessing(void)
                     memset(&Bar,0x00,sizeof(DownloadBarInfo));
                     Bar.bar = 0xffff0000;
                     updateDownloadbar(&Bar);
+                    printf(" ---------- END   REC->TS -----------------\n");
                 } else
                     OpenFilesForTS2REC();
             }
