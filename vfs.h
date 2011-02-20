@@ -274,9 +274,6 @@ typedef struct{
    But: This was never used by pc2box */
 #define VFS_INFO_STR           "LaSAT VideoFS V.201"
 
-/* On recordings from receiver, VFS_Table::ClusterSize 
-   contains 0x000800 - what does this mean? */
-#define VFS_CLUSTER_SIZE       0x100000
 #define VFS_RESEVED_SECT       0x80
 #define VFS_FILES_MAX_OPEN     2
 

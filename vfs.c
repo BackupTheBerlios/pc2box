@@ -1111,6 +1111,9 @@ FAT_ERROR VFS_OpenFile(HD_VFS_HANDLER **pfile,INT8U *path,INT16U flag)
                         stripCtrlE((char *)pInode[ix].EntryName);
                     if(pInode[ix].status == INODE_EOI) {
                         printf(" Path not found (EOI)\n");
+                        // Also break the outer while to prevent repeated looping on the 
+                        // same content
+                        is = 0;
                         break;
                     } else if(pInode[ix].status == INODE_BUSY) {
                         if(!strcmp((const char*)pInode[ix].EntryName,(const char*)path)) {
@@ -1196,19 +1199,17 @@ FAT_ERROR VFS_GetFileInfobyIndex(INT16U idx,HD_VFS_HANDLER *pHandler)
 {
     FAT_ERROR          err = FAT_OK;
     HD_VFS_INODE_DESC *pInode;
-    INT32U             Cluster,offset,Idx;
+    INT32U             offset,Idx;
 
     if(Drive.V_FAT.rootentrycounter < idx)
         return FAT_OUT_OF_SPACE;
     VFS_Enter();
-    //! get target cluster
-    Cluster = (idx*sizeof(HD_VFS_INODE_DESC)) / VFS_CLUSTER_SIZE;
-    //! sector offset from one cluster
-    offset  = (VFS_CLUSTER_SIZE / sizeof(HD_VFS_INODE_DESC))*Cluster;
+    // Note: previous code versions used cluster and cluster offset here
+    //       but the receiver code does support clusters > 0 here
     //! get sector in this cluster
-    offset += (idx*sizeof(HD_VFS_INODE_DESC)) / Drive.V_FAT.SectorSize;
+    offset = (idx*sizeof(HD_VFS_INODE_DESC)) / Drive.V_FAT.SectorSize;
     //! read sector
-    pInode  = ((HD_VFS_INODE_DESC*)hd_vfs_ClusterRead(Cluster,offset));
+    pInode  = ((HD_VFS_INODE_DESC*)hd_vfs_ClusterRead(0,offset));
     Idx     = (idx*sizeof(HD_VFS_INODE_DESC)) % Drive.V_FAT.SectorSize;
     Idx    /=  sizeof(HD_VFS_INODE_DESC);
     // Strip leading CTRL-E character from the UI file list
@@ -1217,9 +1218,6 @@ FAT_ERROR VFS_GetFileInfobyIndex(INT16U idx,HD_VFS_HANDLER *pHandler)
             stripCtrlE((char *)pInode[Idx].EntryName);
     //! offset in this sector
     pInode  = &pInode[Idx];
-    //DEB_PR_HEX("\nCluster 0x",Cluster,4)
-    //DEB_PR_HEX(" SectorOffset 0x",offset,4)
-    //DEB_PR_HEX(" InodeIdx 0x",Idx,4)
     //! file is not open
     pHandler->stat                  = 0;
     pHandler->bmpfile.pBitmap       = 0;
