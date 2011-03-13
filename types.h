@@ -38,9 +38,8 @@ typedef	signed   __int32	__s32;
 
 typedef	signed   __int64	__s64;
 typedef	unsigned __int64	__u64;
-*/
-// TODO: check for 32 bitness on 64-bit targets
 typedef	unsigned int	__u32;
+*/
 
 //! SmartMpeg_type
 typedef unsigned char  U8;

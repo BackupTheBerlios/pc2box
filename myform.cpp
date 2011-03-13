@@ -333,7 +333,7 @@ void MyForm::clearFileListWidget(){
 
 void MyForm::DisplayLoadBar(){
     lock.lock();
-    printf("LoadBar %s %d\n",DownloadBar.InfoStr,(int)DownloadBar.bar);
+    //printf("LoadBar %s %d\n",DownloadBar.InfoStr,(int)DownloadBar.bar);
     if(!DownloadBar.bar){
         // start popup
         pd->setLabelText( (char*)DownloadBar.InfoStr);

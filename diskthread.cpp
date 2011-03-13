@@ -123,7 +123,7 @@ void Disk_Thread::AddNewVFSHandler(HD_VFS_HANDLER *pVfsHandler){
 }
 
 void Disk_Thread::updateDownloadbar(DownloadBarInfo *pInfo){
-    printf(" bar -> %d\n",(int)pInfo->bar);
+    //printf(" bar -> %d\n",(int)pInfo->bar);
     *pDownloadBar = *pInfo;
     emit UpdateBarbeep();
     while(pDownloadBar->bar != 0xffffffff){ // sync it
@@ -474,7 +474,7 @@ void Disk_Thread::FileUploadProcessing(void)
 {
     lock->lock();
     if(ActPc2BoxFile){
-        printf("*");
+        //printf("*\n");
         if(PCFile){
             FAT_ERROR           fat_err;
             HD_VFS_RECORD_INFO *pInfo;
@@ -500,7 +500,7 @@ void Disk_Thread::FileUploadProcessing(void)
 
                 pInfo = (HD_VFS_RECORD_INFO *)&RecordBuffer[VFS_TSPACK_SIZE];
 
-                qDebug("Rec -> %d t-> %d ",pInfo->ActRecordNbr,pInfo->RecHdTimeStamp);
+                // qDebug("Rec -> %d t-> %d ",pInfo->ActRecordNbr,pInfo->RecHdTimeStamp);
                 if(pInfo->ActRecordNbr == 1)pInfo->Linkused = 1;
                 else                        pInfo->Linkused = 0;
                 pInfo->MarkLink          = 0;
@@ -582,7 +582,7 @@ void Disk_Thread::FileDownloadProcessing(void)
 {
     lock->lock();
     if(ActFile){
-        printf("*\n");
+        //printf("*\n");
         if(VFSHandler){
             U32 size;
             FAT_ERROR  err;
@@ -597,7 +597,7 @@ void Disk_Thread::FileDownloadProcessing(void)
             }else{
                 // Copy a single record
                 HD_VFS_RECORD_INFO *pInfo = (HD_VFS_RECORD_INFO *)&RecordBuffer[VFS_TSPACK_SIZE];
-                qDebug("Rec -> %d t-> %d ",pInfo->ActRecordNbr,pInfo->RecHdTimeStamp);
+                //qDebug("Rec -> %d t-> %d ",pInfo->ActRecordNbr,pInfo->RecHdTimeStamp);
                 if(pFileDownload->type == TS_DOWNLOAD){
                     // mpeg PART
                     PCFile->write((const char*)RecordBuffer,VFS_TSPACK_SIZE);
